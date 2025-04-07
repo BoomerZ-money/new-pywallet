@@ -18,6 +18,9 @@ if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_in
     ))
     sys.exit(1)
 
+# Track missing dependencies
+missing_dep = []
+
 import os
 import warnings
 import binascii
@@ -27,6 +30,7 @@ import platform
 import unittest
 import collections
 import functools
+from functools import reduce
 import subprocess
 import urllib.request as urllib_request
 from optparse import OptionParser
@@ -182,16 +186,9 @@ import types
 import string
 import hashlib
 import random
-try:
-    # Python 3
-    import urllib.request as urllib_request
-    import urllib.parse as urllib_parse
-    import urllib.error as urllib_error
-except ImportError:
-    # Python 2
-    import urllib as urllib_request
-    import urllib as urllib_parse
-    import urllib as urllib_error
+import urllib.request as urllib_request
+import urllib.parse as urllib_parse
+import urllib.error as urllib_error
 import math
 import base64
 import collections
@@ -208,25 +205,24 @@ import os.path
 import platform
 
 def ordsix(x):
-	if x.__class__ == int:return x
+	if x.__class__ == int:
+		return x
 	return ord(x)
+
 def chrsix(x):
-	if not(x.__class__ in [int, long]):return x
-	if PY3:return bytes([x])
-	return chr(x)
+	return bytes([x])
 
 def str_to_bytes(k):
 	if k.__class__ == str and not hasattr(k, 'decode'):
 		return bytes(k, 'ascii')
 	return k
+
 def bytes_to_str(k):
 	if k.__class__ == bytes:
 		try:
 			return k.decode()
 		except UnicodeDecodeError:
 			return k.decode('latin1')
-	if k.__class__ == unicode:
-		return bytes_to_str(k.encode())
 	return k
 
 class Bdict(dict):
@@ -389,7 +385,7 @@ def keccak_f(state):
 			for y in rangeH:A[x][y]=B[x][y]^~ B[(x+1)%W][y]&B[(x+2)%W][y]
 		A[0][0]^=RC
 	l=int(log(state.lanew,2));nr=12+2*l
-	for ir in xrange(nr):round(state.s,RoundConstants[ir])
+	for ir in range(nr):round(state.s,RoundConstants[ir])
 class KeccakState:
 	W=5;H=5;rangeW=range(W);rangeH=range(H)
 	@staticmethod
@@ -1971,9 +1967,9 @@ def recov(device, passes, size=102400, inc=10240, outputdir='.'):
 		else:
 			print("Private keys not decrypted: %d"%len(ckeys_not_decrypted))
 			print("Trying all the remaining possibilities (%d) might take up to %d minutes."%(len(ckeys_not_decrypted)*len(passes)*len(mkeys),int(len(ckeys_not_decrypted)*len(passes)*len(mkeys)//calcspeed)))
-			cont=raw_input("Do you want to test them? (y/n): ")
+			cont=input("Do you want to test them? (y/n): ")
 			while len(cont)==0:
-				cont=raw_input("Do you want to test them? (y/n): ")
+				cont=input("Do you want to test them? (y/n): ")
 				if cont[0]=='y':
 					refused_to_test_all_pps=False
 					cpt=0
@@ -2419,11 +2415,11 @@ def parse_wallet(db, item_callback):
 				d['version'] = vds.read_int32()
 				n_vin = vds.read_compact_size()
 				d['txIn'] = []
-				for i in xrange(n_vin):
+				for i in range(n_vin):
 					d['txIn'].append(parse_TxIn(vds))
 				n_vout = vds.read_compact_size()
 				d['txOut'] = []
-				for i in xrange(n_vout):
+				for i in range(n_vout):
 					d['txOut'].append(parse_TxOut(vds))
 				d['lockTime'] = vds.read_uint32()
 				d['tx'] = binascii.hexlify(vds.input[start:vds.read_cursor])
@@ -2635,7 +2631,8 @@ def merge_wallets(wadir, wa, wbdir, wb, wrdir, wr, passphrase_a, passphrase_b, p
 	global global_merging_message
 
 	global_merging_message=["Merging...","Merging..."]
-	thread.start_new_thread(import_csv_keys, ("\x00"+t, wrdir, wr,))
+	import threading
+	threading.Thread(target=import_csv_keys, args=("\x00"+t, wrdir, wr,)).start()
 	t=""
 
 	passphrase=passphrase_LAST
@@ -3659,8 +3656,7 @@ BECH32_ALPH='qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 BASE32_ALPH='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
 def witprog_to_bech32_addr(witprog, network, witv=0):
-	x = base64.b32encode(witprog)
-	if PY3:x = x.decode()
+	x = base64.b32encode(witprog).decode()
 	x = x.replace('=', '')
 	data = [witv]+list(map(lambda y:BASE32_ALPH.index(y), x))
 	combined = data + bech32_create_checksum(network.segwit_hrp, data)
@@ -4368,12 +4364,12 @@ if __name__ == '__main__':
 		for pbk in encrypted_keys[::-1]:
 			p2pkh, p2wpkh, witaddr, _ = pubkey_info(pbk['public_key'], network)
 			for addr in [p2pkh, p2wpkh, witaddr]:
-				has_balance = raw_input(addr + ': ') != ''
+				has_balance = input(addr + ': ') != ''
 				if has_balance:
 					print('')
 					break
 			if not has_balance:
-				if raw_input("\nAre you REALLY sure the 3 addresses above have an empty balance? (type 'YES') ") == 'YES':
+				if input("\nAre you REALLY sure the 3 addresses above have an empty balance? (type 'YES') ") == 'YES':
 					output_db = open_wallet(db_env, minimal_wallet, True)
 					output_db.put(*mkey)
 					output_db.put(pbk['__key__'], pbk['__value__'])

@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set entrypoint
-ENTRYPOINT ["python", "pywallet3.py"]
+ENTRYPOINT ["python", "-m", "pywallet_refactored"]
 
-# Default command (can be overridden)
+# Default command (shows help)
 CMD ["--help"]

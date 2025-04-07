@@ -1,2 +1,14 @@
+# Core dependencies
 bsddb3>=6.2.9
 ecdsa>=0.18.0
+pycryptodome>=3.15.0
+
+# Optional dependencies
+cryptography>=38.0.0  # Alternative to pycryptodome
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=3.0.0
+black>=22.3.0
+isort>=5.10.1
+flake8>=4.0.1
