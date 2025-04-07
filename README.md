@@ -1,22 +1,13 @@
 # PyWallet - Bitcoin Wallet Tool
 
 ## Description
-A Python-based tool for managing Bitcoin wallets, available in two versions to support both legacy and modern systems.
+A Python-based tool for managing Bitcoin wallets. PyWallet allows you to dump, import, and recover Bitcoin wallet keys, as well as perform various other wallet operations.
 
 ## Version Information
-This repository contains two versions of PyWallet:
-
-1. `pywallet.py`  - Legacy Version (Python 2.x)
-2. `pywallet3.py` - Modern Version (Python 3.9+)
+This repository contains PyWallet for Python 3.9+. The legacy Python 2.x version has been deprecated.
 
 ## System Requirements
 
-### Legacy Version (pywallet.py)
-- Python 2.x
-- bsddb library
-- ecdsa library
-
-### Modern Version (pywallet3.py)
 - Python 3.9 or higher
 - bsddb3 library
 - ecdsa library
@@ -24,31 +15,27 @@ This repository contains two versions of PyWallet:
 
 ## Installation Instructions
 
-### Legacy Version (Python 2.x)
+### Using Docker (Recommended)
 
-#### Debian/Ubuntu Linux:
+The easiest way to use PyWallet is with Docker, which handles all dependencies automatically:
+
 ```bash
-aptitude install build-essential python-dev python-bsddb3
+# Build the Docker image
+docker build -t pywallet .
+
+# Run PyWallet with Docker (example: show help)
+docker run pywallet
+
+# Run with specific options (example: dump wallet)
+docker run -v /path/to/your/wallet:/wallet pywallet --dumpwallet --wallet=/wallet/wallet.dat
 ```
 
-#### Mac OS X:
-1. Install MacPorts from http://www.macports.org/
-2. Run the following commands:
-```bash
-sudo port install python27 py27-pip py-bsddb python_select
-sudo port select --set python python27
-sudo easy_install ecdsa
-```
-
-#### Windows:
-- Install Python 2.7 from python.org
-- Install required packages using pip
-
-### Modern Version (Python 3.9+)
+### Manual Installation
 
 #### Debian/Ubuntu Linux:
 ```bash
 apt install build-essential python3-dev python3-bsddb3
+pip3 install -r requirements.txt
 ```
 
 #### Mac OS X:
@@ -57,29 +44,28 @@ apt install build-essential python3-dev python3-bsddb3
 ```bash
 brew install python@3.9
 brew install berkeley-db@4
-pip3 install bsddb3 ecdsa
+pip3 install -r requirements.txt
 ```
 
 #### Windows:
 1. Install Python 3.9 or higher from https://www.python.org/
 2. Install required packages:
 ```bash
-pip install bsddb3 ecdsa
+pip install -r requirements.txt
 ```
 
 ## Usage Instructions
 
 ### Command Line Options
-Both versions support the same command-line options:
 
-#### Legacy Version:
-```bash
-python pywallet.py [options]
-```
-
-#### Modern Version:
 ```bash
 python pywallet3.py [options]
+```
+
+Or with Docker:
+
+```bash
+docker run pywallet [options]
 ```
 
 ### Available Options
@@ -131,66 +117,44 @@ python pywallet3.py [options]
 
 1. **Dump wallet with balance information:**
 ```bash
-# Modern Version (Python 3.9+)
 python3 pywallet3.py --dumpwallet --dumpwithbalance --wallet=./wallet.dat
 ```
+With Docker:
 ```bash
-# Legacy Version (Python 2.x)
-python pywallet.py --dumpwallet --dumpwithbalance --wallet=./wallet.dat
+docker run -v $(pwd):/wallet pywallet --dumpwallet --dumpwithbalance --wallet=/wallet/wallet.dat
 ```
 
 2. **Import a private key:**
 ```bash
-# Modern Version (Python 3.9+)
 python3 pywallet3.py --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
-```
-```bash
-# Legacy Version (Python 2.x)
-python pywallet.py --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
 ```
 
 3. **Check balance of specific address:**
 ```bash
-# Modern Version (Python 3.9+)
 python3 pywallet3.py --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
-```
-```bash
-# Legacy Version (Python 2.x)
-python pywallet.py --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 ```
 
 4. **Create watch-only wallet:**
 ```bash
-# Modern Version (Python 3.9+)
 python3 pywallet3.py --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./watch_only.dat
-```
-```bash
-# Legacy Version (Python 2.x)
-python pywallet.py --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./watch_only.dat
 ```
 
 5. **Extract Bitcoin whitepaper:**
 ```bash
-# Modern Version (Python 3.9+)
 python3 pywallet3.py --whitepaper
-```
-```bash
-# Legacy Version (Python 2.x)
-python pywallet.py --whitepaper
 ```
 
 > **Note:** Replace file paths and addresses with your actual values. Always verify addresses and keys before using them.
 
 ## Important Notes
 
-### Version Recommendation
-The modern version (`pywallet3.py`) is recommended for most users as it includes:
-- ✨ Improved security features
-- 🔄 Better compatibility with current Bitcoin standards
+### Features
+PyWallet includes:
+- ✨ Secure wallet handling
+- 🔄 Compatibility with Bitcoin standards
 - 🚀 Modern Python features and optimizations
 - 🛠️ Active maintenance and updates
-
-Only use the legacy version (`pywallet.py`) if you have specific requirements for Python 2.x compatibility.
+- 🐳 Docker support for easy deployment
 
 ### Security Notice
 ⚠️ Always ensure you:
@@ -198,6 +162,43 @@ Only use the legacy version (`pywallet.py`) if you have specific requirements fo
 - Use strong passwords
 - Run this tool in a secure environment
 - Verify the authenticity of the software
+
+## Development
+
+### Running Tests
+
+To run the test suite:
+
+```bash
+python pywallet3.py --tests
+```
+
+Or with Docker:
+
+```bash
+docker run pywallet --tests
+```
+
+### Project Structure
+
+```
+.
+├── pywallet/           # Main module directory
+│   ├── __init__.py     # Package initialization
+│   ├── config.py       # Configuration variables
+│   ├── crypto.py       # Cryptographic functions
+│   ├── recovery.py     # Recovery functions
+│   ├── utils.py        # Utility functions
+│   └── wallet.py       # Wallet handling functions
+├── tests/              # Test directory
+│   ├── __init__.py     # Test package initialization
+│   ├── test_crypto.py  # Tests for crypto module
+│   └── test_utils.py   # Tests for utils module
+├── Dockerfile          # Docker configuration
+├── README.md           # This file
+├── pywallet3.py        # Main script
+└── requirements.txt    # Python dependencies
+```
 
 ## Support and Contributing
 For issues, questions, or contributions, please:
