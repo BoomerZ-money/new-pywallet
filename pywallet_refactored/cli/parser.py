@@ -118,6 +118,21 @@ def create_parser() -> argparse.ArgumentParser:
         help='Output file (defaults to wallet.dat.bak)'
     )
 
+    # Watch-only wallet command
+    watchonly_parser = subparsers.add_parser(
+        'watchonly',
+        help='Create a watch-only wallet from an existing wallet'
+    )
+    watchonly_parser.add_argument(
+        '--wallet', '-w',
+        help='Source wallet file'
+    )
+    watchonly_parser.add_argument(
+        '--output', '-o',
+        required=True,
+        help='Output file for watch-only wallet'
+    )
+
     # Generate key command
     genkey_parser = subparsers.add_parser(
         'genkey',
@@ -152,6 +167,118 @@ def create_parser() -> argparse.ArgumentParser:
     checkkey_parser.add_argument(
         'key',
         help='WIF encoded private key to check'
+    )
+
+    # Balance command
+    balance_parser = subparsers.add_parser(
+        'balance',
+        help='Check balance of Bitcoin addresses'
+    )
+    balance_parser.add_argument(
+        'addresses',
+        nargs='+',
+        help='Bitcoin addresses to check'
+    )
+    balance_parser.add_argument(
+        '--provider', '-p',
+        choices=['blockchain.info', 'blockcypher'],
+        default='blockchain.info',
+        help='Blockchain API provider to use'
+    )
+
+    # Transaction history command
+    txhistory_parser = subparsers.add_parser(
+        'txhistory',
+        help='Get transaction history for Bitcoin addresses'
+    )
+    txhistory_parser.add_argument(
+        'address',
+        help='Bitcoin address to check'
+    )
+    txhistory_parser.add_argument(
+        '--output', '-o',
+        help='Output file for transaction history'
+    )
+    txhistory_parser.add_argument(
+        '--provider', '-p',
+        choices=['blockchain.info', 'blockcypher'],
+        default='blockchain.info',
+        help='Blockchain API provider to use'
+    )
+
+    # Batch operations commands
+    batch_parser = subparsers.add_parser(
+        'batch',
+        help='Batch operations for keys and addresses'
+    )
+    batch_subparsers = batch_parser.add_subparsers(
+        dest='batch_command',
+        help='Batch command to execute'
+    )
+
+    # Batch import keys command
+    batch_import_parser = batch_subparsers.add_parser(
+        'import',
+        help='Import keys from a file'
+    )
+    batch_import_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet file'
+    )
+    batch_import_parser.add_argument(
+        '--input', '-i',
+        required=True,
+        help='Input file with keys'
+    )
+    batch_import_parser.add_argument(
+        '--label', '-l',
+        default='Imported',
+        help='Label prefix for imported keys'
+    )
+
+    # Batch export keys command
+    batch_export_parser = batch_subparsers.add_parser(
+        'export',
+        help='Export keys to a file'
+    )
+    batch_export_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet file'
+    )
+    batch_export_parser.add_argument(
+        '--output', '-o',
+        required=True,
+        help='Output file for keys'
+    )
+    batch_export_parser.add_argument(
+        '--no-private',
+        action='store_true',
+        help='Do not include private keys in export'
+    )
+    batch_export_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
+    )
+
+    # Batch generate keys command
+    batch_generate_parser = batch_subparsers.add_parser(
+        'generate',
+        help='Generate multiple key pairs'
+    )
+    batch_generate_parser.add_argument(
+        'count',
+        type=int,
+        help='Number of key pairs to generate'
+    )
+    batch_generate_parser.add_argument(
+        '--output', '-o',
+        required=True,
+        help='Output file for generated keys'
+    )
+    batch_generate_parser.add_argument(
+        '--uncompressed', '-u',
+        action='store_true',
+        help='Generate uncompressed keys'
     )
 
     # Recovery commands

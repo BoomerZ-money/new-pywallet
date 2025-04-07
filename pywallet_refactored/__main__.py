@@ -13,8 +13,10 @@ from pywallet_refactored.config import config
 from pywallet_refactored.cli.parser import parse_args
 from pywallet_refactored.cli.commands import (
     dump_wallet, import_key, create_wallet, backup_wallet,
-    generate_key, check_address, check_key, recover_keys
+    generate_key, check_address, check_key, recover_keys,
+    check_balance, get_tx_history, create_watch_only_wallet
 )
+from pywallet_refactored.cli.batch_commands import handle_batch_command
 
 def main(args: Optional[List[str]] = None) -> int:
     """
@@ -59,12 +61,20 @@ def main(args: Optional[List[str]] = None) -> int:
         return create_wallet(args_dict)
     elif command == 'backup' or args_dict.get('backupwallet'):
         return backup_wallet(args_dict)
+    elif command == 'watchonly':
+        return create_watch_only_wallet(args_dict)
     elif command == 'genkey':
         return generate_key(args_dict)
     elif command == 'checkaddr':
         return check_address(args_dict)
     elif command == 'checkkey':
         return check_key(args_dict)
+    elif command == 'balance':
+        return check_balance(args_dict)
+    elif command == 'txhistory':
+        return get_tx_history(args_dict)
+    elif command == 'batch':
+        return handle_batch_command(args_dict)
     elif command == 'recover':
         return recover_keys(args_dict)
     else:

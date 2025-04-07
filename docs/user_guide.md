@@ -11,10 +11,18 @@ This guide provides detailed instructions for using PyWallet to manage Bitcoin w
   - [Importing Private Keys](#importing-private-keys)
   - [Creating New Wallets](#creating-new-wallets)
   - [Backing Up Wallets](#backing-up-wallets)
+  - [Creating Watch-Only Wallets](#creating-watch-only-wallets)
 - [Key Management](#key-management)
   - [Generating Key Pairs](#generating-key-pairs)
   - [Checking Addresses](#checking-addresses)
   - [Checking Private Keys](#checking-private-keys)
+- [Blockchain Operations](#blockchain-operations)
+  - [Checking Address Balances](#checking-address-balances)
+  - [Viewing Transaction History](#viewing-transaction-history)
+- [Batch Operations](#batch-operations)
+  - [Importing Multiple Keys](#importing-multiple-keys)
+  - [Exporting Multiple Keys](#exporting-multiple-keys)
+  - [Generating Multiple Keys](#generating-multiple-keys)
 - [Recovery](#recovery)
   - [Recovering Keys from Wallet Files](#recovering-keys-from-wallet-files)
   - [Recovering Keys from Devices](#recovering-keys-from-devices)
@@ -162,6 +170,20 @@ Options:
 - `--wallet`: Path to the wallet.dat file
 - `--output`: Path to the backup file
 
+### Creating Watch-Only Wallets
+
+A watch-only wallet contains public keys but no private keys, allowing you to monitor addresses without the ability to spend funds. This is useful for tracking balances without exposing private keys.
+
+To create a watch-only wallet from an existing wallet:
+
+```bash
+python -m pywallet_refactored watchonly --wallet=/path/to/wallet.dat --output=/path/to/watchonly.dat
+```
+
+Options:
+- `--wallet`: Path to the source wallet.dat file
+- `--output`: Path to the watch-only wallet file (required)
+
 ## Key Management
 
 ### Generating Key Pairs
@@ -207,6 +229,108 @@ Private key is valid
 Address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 Compressed: True
 ```
+
+## Blockchain Operations
+
+### Checking Address Balances
+
+To check the balance of one or more Bitcoin addresses:
+
+```bash
+python -m pywallet_refactored balance 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa 1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2
+```
+
+Options:
+- `--provider`, `-p`: Blockchain API provider to use (choices: 'blockchain.info', 'blockcypher')
+
+Example output:
+```
+Address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+Balance: 0.12345678 BTC (12345678 satoshis)
+
+Address: 1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2
+Balance: 0.00000000 BTC (0 satoshis)
+```
+
+### Viewing Transaction History
+
+To view the transaction history for a Bitcoin address:
+
+```bash
+python -m pywallet_refactored txhistory 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+```
+
+Options:
+- `--output`, `-o`: Output file for transaction history
+- `--provider`, `-p`: Blockchain API provider to use (choices: 'blockchain.info', 'blockcypher')
+
+Example output:
+```
+Transaction history for 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa:
+Found 10 transactions
+
+Transaction 1:
+  Hash: 6f7cf9580f1c2dfb3c4d5d043cdbb128c640e3f20161245aa7372e9666168516
+  Time: 2021-01-01 12:00:00
+  Effect: +100000 satoshis (received)
+
+Transaction 2:
+  Hash: 7f8cf9580f1c2dfb3c4d5d043cdbb128c640e3f20161245aa7372e9666168517
+  Time: 2021-01-02 13:00:00
+  Effect: -50000 satoshis (sent)
+```
+
+## Batch Operations
+
+### Importing Multiple Keys
+
+To import multiple private keys from a file into a wallet:
+
+```bash
+python -m pywallet_refactored batch import --wallet=/path/to/wallet.dat --input=/path/to/keys.txt --label="Imported"
+```
+
+Options:
+- `--wallet`, `-w`: Path to the wallet file
+- `--input`, `-i`: Input file with keys (required)
+- `--label`, `-l`: Label prefix for imported keys
+
+Supported input file formats:
+- JSON: `.json` extension
+- CSV: `.csv` extension
+- Text: Any other extension (one key per line)
+
+### Exporting Multiple Keys
+
+To export keys from a wallet to a file:
+
+```bash
+python -m pywallet_refactored batch export --wallet=/path/to/wallet.dat --output=/path/to/exported_keys.json
+```
+
+Options:
+- `--wallet`, `-w`: Path to the wallet file
+- `--output`, `-o`: Output file for keys (required)
+- `--no-private`: Do not include private keys in export
+- `--passphrase`, `-p`: Wallet passphrase for encrypted wallets
+
+Supported output file formats (determined by extension):
+- JSON: `.json` extension
+- CSV: `.csv` extension
+- Text: Any other extension
+
+### Generating Multiple Keys
+
+To generate multiple key pairs:
+
+```bash
+python -m pywallet_refactored batch generate 10 --output=/path/to/generated_keys.json
+```
+
+Options:
+- `count`: Number of key pairs to generate (required)
+- `--output`, `-o`: Output file for generated keys (required)
+- `--uncompressed`, `-u`: Generate uncompressed keys
 
 ## Recovery
 

@@ -13,6 +13,9 @@ A comprehensive Bitcoin wallet management tool for dumping, importing, and recov
 - 🔄 Create watch-only wallets
 - 🛡️ Support for encrypted wallets
 - 🐳 Docker support for easy deployment
+- 💰 Check balance of Bitcoin addresses
+- 📜 View transaction history for addresses
+- 📦 Batch operations for multiple keys
 
 ## Installation
 
@@ -101,6 +104,20 @@ python -m pywallet_refactored checkaddr 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 # Check if a private key is valid
 python -m pywallet_refactored checkkey 5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
 
+# Check balance of addresses
+python -m pywallet_refactored balance 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa 1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2
+
+# View transaction history
+python -m pywallet_refactored txhistory 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa --output=transactions.json
+
+# Create a watch-only wallet
+python -m pywallet_refactored watchonly --wallet=/path/to/wallet.dat --output=/path/to/watchonly.dat
+
+# Batch operations
+python -m pywallet_refactored batch import --wallet=/path/to/wallet.dat --input=keys.txt
+python -m pywallet_refactored batch export --wallet=/path/to/wallet.dat --output=exported_keys.json
+python -m pywallet_refactored batch generate 10 --output=generated_keys.json
+
 # Recover keys from a wallet
 python -m pywallet_refactored recover --file=/path/to/wallet.dat --output=recovered_keys.json
 ```
@@ -113,6 +130,20 @@ docker run -v $(pwd):/wallet pywallet dump --wallet=/wallet/wallet.dat --output=
 
 # Import a private key
 docker run -v $(pwd):/wallet pywallet import 5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8 --wallet=/wallet/wallet.dat
+
+# Check balance of addresses
+docker run -v $(pwd):/wallet pywallet balance 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+
+# View transaction history
+docker run -v $(pwd):/wallet pywallet txhistory 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa --output=/wallet/transactions.json
+
+# Create a watch-only wallet
+docker run -v $(pwd):/wallet pywallet watchonly --wallet=/wallet/wallet.dat --output=/wallet/watchonly.dat
+
+# Batch operations
+docker run -v $(pwd):/wallet pywallet batch import --wallet=/wallet/wallet.dat --input=/wallet/keys.txt
+docker run -v $(pwd):/wallet pywallet batch export --wallet=/wallet/wallet.dat --output=/wallet/exported_keys.json
+docker run -v $(pwd):/wallet pywallet batch generate 10 --output=/wallet/generated_keys.json
 
 # Recover keys from a wallet
 docker run -v $(pwd):/wallet pywallet recover --file=/wallet/wallet.dat --output=/wallet/recovered_keys.json
@@ -202,13 +233,34 @@ For more detailed API documentation, see the [API Reference](docs/api_reference.
 To run the test suite:
 
 ```bash
+# Run all tests
+python run_tests.py
+
+# Run specific test modules
+python -m unittest pywallet_refactored.tests.test_crypto
+python -m unittest pywallet_refactored.tests.test_wallet
+
+# Run with unittest discover
 python -m unittest discover -s pywallet_refactored/tests
+
+# Run with pytest
+pytest pywallet_refactored/tests
 ```
 
-Or with pytest:
+### Test Coverage
+
+The test suite includes comprehensive tests for:
+
+- Cryptographic functions (keys, AES encryption)
+- Wallet database operations
+- Blockchain API interactions
+- Batch operations for keys
+- Command-line interface commands
+
+To run tests with coverage reporting:
 
 ```bash
-pytest pywallet_refactored/tests
+python -m pytest --cov=pywallet_refactored pywallet_refactored/tests/
 ```
 
 ### Code Style

@@ -14,6 +14,7 @@ from pywallet_refactored.logger import logger
 from pywallet_refactored.config import config
 from pywallet_refactored.db.wallet import WalletDB, WalletDBError
 from pywallet_refactored.crypto.keys import generate_key_pair, is_valid_address, is_valid_wif
+from pywallet_refactored.blockchain import get_balance, get_transactions, BlockchainError
 
 def dump_wallet(args: Dict[str, Any]) -> int:
     """
@@ -172,6 +173,38 @@ def backup_wallet(args: Dict[str, Any]) -> int:
         logger.error(f"Failed to backup wallet: {e}")
         return 1
 
+def create_watch_only_wallet(args: Dict[str, Any]) -> int:
+    """
+    Create a watch-only wallet from an existing wallet.
+
+    Args:
+        args: Command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    try:
+        # Get wallet path
+        wallet_path = args.get('wallet')
+        if not wallet_path:
+            wallet_path = config.determine_wallet_path()
+
+        # Get output path
+        output_path = args.get('output')
+        if not output_path:
+            logger.error("Output path is required")
+            return 1
+
+        # Create watch-only wallet
+        with WalletDB(wallet_path) as wallet:
+            wallet.create_watch_only(output_path)
+
+        logger.info(f"Watch-only wallet created at {output_path}")
+        return 0
+    except WalletDBError as e:
+        logger.error(f"Failed to create watch-only wallet: {e}")
+        return 1
+
 def generate_key(args: Dict[str, Any]) -> int:
     """
     Generate a new key pair.
@@ -272,6 +305,126 @@ def check_key(args: Dict[str, Any]) -> int:
         return 0 if valid else 1
     except Exception as e:
         logger.error(f"Failed to check key: {e}")
+        return 1
+
+def check_balance(args: Dict[str, Any]) -> int:
+    """
+    Check balance of Bitcoin addresses.
+
+    Args:
+        args: Command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    try:
+        # Get addresses
+        addresses = args.get('addresses', [])
+
+        # Set blockchain provider
+        provider = args.get('provider')
+        if provider:
+            config.set('blockchain_provider', provider)
+
+        # Check each address
+        for address in addresses:
+            # Validate address
+            if not is_valid_address(address):
+                logger.error(f"Invalid address: {address}")
+                continue
+
+            try:
+                # Get balance
+                balance_satoshis, balance_btc = get_balance(address)
+
+                print(f"Address: {address}")
+                print(f"Balance: {balance_btc} ({balance_satoshis} satoshis)")
+                print("")
+            except BlockchainError as e:
+                logger.error(f"Failed to get balance for {address}: {e}")
+
+        return 0
+    except Exception as e:
+        logger.error(f"Failed to check balance: {e}")
+        return 1
+
+def get_tx_history(args: Dict[str, Any]) -> int:
+    """
+    Get transaction history for a Bitcoin address.
+
+    Args:
+        args: Command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    try:
+        # Get address
+        address = args.get('address')
+
+        # Validate address
+        if not is_valid_address(address):
+            logger.error(f"Invalid address: {address}")
+            return 1
+
+        # Set blockchain provider
+        provider = args.get('provider')
+        if provider:
+            config.set('blockchain_provider', provider)
+
+        # Get transactions
+        transactions = get_transactions(address)
+
+        # Print transaction summary
+        print(f"Transaction history for {address}:")
+        print(f"Found {len(transactions)} transactions")
+        print("")
+
+        for i, tx in enumerate(transactions[:10]):  # Show only first 10 transactions
+            tx_hash = tx.get('hash', 'Unknown')
+            tx_time = tx.get('time', 0)
+            tx_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tx_time)) if tx_time else 'Unknown'
+
+            # Calculate net effect on address
+            inputs = tx.get('inputs', [])
+            outputs = tx.get('out', [])
+
+            address_inputs = sum(inp.get('prev_out', {}).get('value', 0)
+                               for inp in inputs
+                               if inp.get('prev_out', {}).get('addr') == address)
+
+            address_outputs = sum(out.get('value', 0)
+                                for out in outputs
+                                if out.get('addr') == address)
+
+            net_effect = address_outputs - address_inputs
+
+            if net_effect > 0:
+                effect_str = f"+{net_effect} satoshis (received)"
+            elif net_effect < 0:
+                effect_str = f"{net_effect} satoshis (sent)"
+            else:
+                effect_str = "0 satoshis (no change)"
+
+            print(f"Transaction {i+1}:")
+            print(f"  Hash: {tx_hash}")
+            print(f"  Time: {tx_time_str}")
+            print(f"  Effect: {effect_str}")
+            print("")
+
+        # Save to file if requested
+        output_file = args.get('output')
+        if output_file:
+            with open(output_file, 'w') as f:
+                json.dump(transactions, f, indent=4)
+            logger.info(f"Transaction history saved to {output_file}")
+
+        return 0
+    except BlockchainError as e:
+        logger.error(f"Failed to get transaction history: {e}")
+        return 1
+    except Exception as e:
+        logger.error(f"Failed to get transaction history: {e}")
         return 1
 
 def recover_keys(args: Dict[str, Any]) -> int:

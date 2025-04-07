@@ -10,6 +10,8 @@ This document provides detailed information about the PyWallet API.
   - [Keys](#keys)
   - [AES Encryption](#aes-encryption)
   - [Base58 Encoding](#base58-encoding)
+- [Blockchain](#blockchain)
+- [Batch Operations](#batch-operations)
 - [Recovery](#recovery)
 - [Utilities](#utilities)
 
@@ -176,6 +178,16 @@ Create a backup of the wallet.
   - `backup_path`: Path to backup file
 - **Raises**: `WalletDBError` if the backup cannot be created
 
+##### `create_watch_only(output_path: str) -> None`
+
+Create a watch-only wallet from this wallet.
+
+A watch-only wallet contains public keys but no private keys, allowing monitoring of addresses without the ability to spend.
+
+- **Parameters**:
+  - `output_path`: Path to the watch-only wallet file
+- **Raises**: `WalletDBError` if the watch-only wallet cannot be created
+
 #### Usage Example
 
 ```python
@@ -185,10 +197,10 @@ from pywallet_refactored.db.wallet import WalletDB
 with WalletDB('/path/to/wallet.dat') as wallet:
     # Read wallet data
     wallet_data = wallet.read_wallet(passphrase='your_passphrase')
-    
+
     # Import a key
     wallet.import_key('5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8', label='My Key')
-    
+
     # Dump wallet
     wallet.dump_wallet('keys.json')
 ```
@@ -416,6 +428,243 @@ decoded = b58decode_check(encoded)
 print(decoded.hex())
 ```
 
+## Blockchain
+
+### `pywallet_refactored.blockchain`
+
+This module provides functions for interacting with the Bitcoin blockchain, including fetching balance information and transaction history.
+
+#### Classes
+
+##### `BlockchainAPI`
+
+Base class for blockchain API providers.
+
+###### Methods
+
+- `__init__()`: Initialize blockchain API.
+- `_rate_limit()`: Apply rate limiting to API requests.
+- `_make_request(url: str) -> Dict[str, Any]`: Make an HTTP request to the API.
+- `get_balance(address: str) -> int`: Get balance for an address in satoshis.
+- `get_transactions(address: str) -> List[Dict[str, Any]]`: Get transaction history for an address.
+
+##### `BlockchainInfoAPI`
+
+Blockchain.info API provider.
+
+###### Methods
+
+- `__init__()`: Initialize blockchain.info API.
+- `get_balance(address: str) -> int`: Get balance for an address in satoshis from blockchain.info.
+- `get_transactions(address: str) -> List[Dict[str, Any]]`: Get transaction history for an address from blockchain.info.
+
+##### `BlockcypherAPI`
+
+Blockcypher API provider.
+
+###### Methods
+
+- `__init__()`: Initialize blockcypher API.
+- `get_balance(address: str) -> int`: Get balance for an address in satoshis from blockcypher.
+- `get_transactions(address: str) -> List[Dict[str, Any]]`: Get transaction history for an address from blockcypher.
+
+#### Functions
+
+##### `get_api_provider() -> BlockchainAPI`
+
+Get the configured blockchain API provider.
+
+- **Returns**: BlockchainAPI instance
+
+##### `get_balance(address: str) -> Tuple[int, str]`
+
+Get balance for an address in satoshis and formatted BTC.
+
+- **Parameters**:
+  - `address`: Bitcoin address
+- **Returns**: Tuple of (balance_satoshis, balance_btc)
+- **Raises**: `BlockchainError` if the balance cannot be fetched
+
+##### `get_transactions(address: str) -> List[Dict[str, Any]]`
+
+Get transaction history for an address.
+
+- **Parameters**:
+  - `address`: Bitcoin address
+- **Returns**: List of transactions
+- **Raises**: `BlockchainError` if the transactions cannot be fetched
+
+##### `format_btc(satoshis: int) -> str`
+
+Format satoshis as BTC string.
+
+- **Parameters**:
+  - `satoshis`: Amount in satoshis
+- **Returns**: Formatted BTC string
+
+#### Usage Example
+
+```python
+from pywallet_refactored.blockchain import get_balance, get_transactions
+
+# Get balance for an address
+balance_satoshis, balance_btc = get_balance('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
+print(f"Balance: {balance_btc} ({balance_satoshis} satoshis)")
+
+# Get transaction history for an address
+transactions = get_transactions('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
+print(f"Found {len(transactions)} transactions")
+
+# Print transaction details
+for tx in transactions[:5]:  # Show first 5 transactions
+    print(f"Transaction: {tx['hash']}")
+    print(f"Time: {tx.get('time', 'Unknown')}")
+```
+
+## Batch Operations
+
+### `pywallet_refactored.batch`
+
+This module provides functions for batch operations on Bitcoin keys.
+
+#### Classes
+
+##### `BatchError`
+
+Exception raised for batch operation errors.
+
+#### Functions
+
+##### `import_keys_from_file(wallet_path: str, input_file: str, label_prefix: str = "") -> List[str]`
+
+Import private keys from a file into a wallet.
+
+- **Parameters**:
+  - `wallet_path`: Path to the wallet file
+  - `input_file`: Path to the input file containing keys
+  - `label_prefix`: Prefix for key labels
+- **Returns**: List of imported addresses
+- **Raises**: `BatchError` if the keys cannot be imported
+
+##### `export_keys_to_file(wallet_path: str, output_file: str, include_private: bool = True, passphrase: str = "") -> int`
+
+Export keys from a wallet to a file.
+
+- **Parameters**:
+  - `wallet_path`: Path to the wallet file
+  - `output_file`: Path to the output file
+  - `include_private`: Whether to include private keys
+  - `passphrase`: Wallet passphrase for encrypted wallets
+- **Returns**: Number of exported keys
+- **Raises**: `BatchError` if the keys cannot be exported
+
+##### `read_keys_from_file(input_file: str) -> List[Union[str, Dict[str, str]]]`
+
+Read keys from a file.
+
+- **Parameters**:
+  - `input_file`: Path to the input file
+- **Returns**: List of keys (strings or dictionaries)
+- **Raises**: `BatchError` if the keys cannot be read
+
+##### `read_keys_from_json(input_file: str) -> List[Dict[str, str]]`
+
+Read keys from a JSON file.
+
+- **Parameters**:
+  - `input_file`: Path to the JSON file
+- **Returns**: List of key dictionaries
+- **Raises**: `BatchError` if the keys cannot be read
+
+##### `read_keys_from_csv(input_file: str) -> List[Dict[str, str]]`
+
+Read keys from a CSV file.
+
+- **Parameters**:
+  - `input_file`: Path to the CSV file
+- **Returns**: List of key dictionaries
+- **Raises**: `BatchError` if the keys cannot be read
+
+##### `read_keys_from_text(input_file: str) -> List[str]`
+
+Read keys from a text file.
+
+- **Parameters**:
+  - `input_file`: Path to the text file
+- **Returns**: List of key strings
+- **Raises**: `BatchError` if the keys cannot be read
+
+##### `export_keys_to_json(keys: List[Dict[str, Any]], output_file: str, include_private: bool = True) -> None`
+
+Export keys to a JSON file.
+
+- **Parameters**:
+  - `keys`: List of key dictionaries
+  - `output_file`: Path to the output file
+  - `include_private`: Whether to include private keys
+- **Raises**: `BatchError` if the keys cannot be exported
+
+##### `export_keys_to_csv(keys: List[Dict[str, Any]], output_file: str, include_private: bool = True) -> None`
+
+Export keys to a CSV file.
+
+- **Parameters**:
+  - `keys`: List of key dictionaries
+  - `output_file`: Path to the output file
+  - `include_private`: Whether to include private keys
+- **Raises**: `BatchError` if the keys cannot be exported
+
+##### `export_keys_to_text(keys: List[Dict[str, Any]], output_file: str, include_private: bool = True) -> None`
+
+Export keys to a text file.
+
+- **Parameters**:
+  - `keys`: List of key dictionaries
+  - `output_file`: Path to the output file
+  - `include_private`: Whether to include private keys
+- **Raises**: `BatchError` if the keys cannot be exported
+
+##### `generate_key_batch(count: int, compressed: bool = True) -> List[Dict[str, Any]]`
+
+Generate a batch of key pairs.
+
+- **Parameters**:
+  - `count`: Number of key pairs to generate
+  - `compressed`: Whether to use compressed format
+- **Returns**: List of key pair dictionaries
+- **Raises**: `BatchError` if the keys cannot be generated
+
+##### `save_key_batch(keys: List[Dict[str, Any]], output_file: str) -> None`
+
+Save a batch of key pairs to a file.
+
+- **Parameters**:
+  - `keys`: List of key pair dictionaries
+  - `output_file`: Path to the output file
+- **Raises**: `BatchError` if the keys cannot be saved
+
+#### Usage Example
+
+```python
+from pywallet_refactored.batch import import_keys_from_file, export_keys_to_file, generate_key_batch, save_key_batch
+
+# Import keys from a file
+imported_addresses = import_keys_from_file('/path/to/wallet.dat', 'keys.txt', 'Imported')
+print(f"Imported {len(imported_addresses)} keys")
+
+# Export keys to a file
+num_keys = export_keys_to_file('/path/to/wallet.dat', 'exported_keys.json')
+print(f"Exported {num_keys} keys")
+
+# Generate a batch of keys
+keys = generate_key_batch(10)  # Generate 10 key pairs
+print(f"Generated {len(keys)} key pairs")
+
+# Save keys to a file
+save_key_batch(keys, 'generated_keys.json')
+print(f"Saved keys to generated_keys.json")
+```
+
 ## Recovery
 
 ### `pywallet_refactored.recovery`
@@ -533,9 +782,9 @@ if encrypted_keys and master_keys:
     recovered_keys = recover_keys_from_passphrase(
         encrypted_keys, master_keys[0], passphrase
     )
-    
+
     keys.extend(recovered_keys)
-    
+
     print(f"Successfully decrypted {len(recovered_keys)} keys")
 
 # Dump keys to file
