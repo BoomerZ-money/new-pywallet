@@ -84,49 +84,47 @@ python pywallet3.py [options]
 
 ### Available Options
 ```bash
-  --version             show program's version number and exit
-  -h, --help           show this help message and exit
-  --dump_bip32         dump the keys from a xpriv and a path
-                       usage: --dump_bip32 xprv9s21ZrQH143K m/0H/1-2/2H/2-4
-  --bip32_format       format of dumped bip32 keys
-  --passphrase         passphrase for the encrypted wallet
-  --find_address       find info about an address
-  -d, --dumpwallet     dump wallet in json format
-  --dumpformat         choose what to extract in a wallet dump (default: all)
-  --dumpwithbalance    includes balance of each address in the json dump
-                       (takes about 2 minutes per 100 addresses)
-  --importprivkey=KEY  import private key from vanitygen
-  --importhex          DEPRECATED, useless
-  --datadir=DATADIR    REMOVED OPTION: put full path in the --wallet option
-  -w, --wallet         wallet filename (defaults to wallet.dat)
-  --label=LABEL        label shown in the address book (defaults to '')
-  --testnet            use testnet subdirectory and address type
-  --namecoin           use namecoin address type
-  --eth                use ethereum address type
-  --otherversion       use other network address type
-                       either P2PKH prefix only (e.g. 111) or
-                       full network info as 'name,p2pkh,p2sh,wif,segwithrp'
-                       (e.g. btc,0,0,0x80,bc)
-  --info               display pubkey, privkey and hexkey
-  --reserve            import as a reserve key (won't show in address book)
-  --multidelete        deletes data in your wallet according to file provided
-  --balance            prints balance of specified address
-  --recover            recover deleted keys (use with recov_size and recov_device)
-  --recov_device       device to read (e.g. /dev/sda1 or E: or a file)
-  --recov_size         number of bytes to read (e.g. 20Mo or 50Gio)
-  --recov_outputdir    output directory for recovered wallet
-  --clone_watchonly_from  path of the original wallet
-  --clone_watchonly_to    path of the resulting watch-only wallet
-  --dont_check_walletversion
-                       don't check wallet version before running
-                       (WARNING: may break your wallet)
-  --random_key         print info of a randomly generated private key
-  --whitepaper         write the Bitcoin whitepaper using bitcoin-cli
-                       or blockchain.info
-  --minimal_encrypted_copy
-                       write a copy of an encrypted wallet with only an empty
-                       address (safe to share when needing password help)
-  --tests              run tests
+  --version                   show program's version number and exit
+  -h, --help                  show this help message and exit
+  --dump_bip32                dump the keys from a xpriv and a path
+                              usage: --dump_bip32 xprv9s21ZrQH143K m/0H/1-2/2H/2-4
+  --bip32_format              format of dumped bip32 keys
+  --passphrase                passphrase for the encrypted wallet
+  --find_address              find info about an address
+  -d, --dumpwallet            dump wallet in json format
+  --dumpformat                choose what to extract in a wallet dump (default: all)
+  --dumpwithbalance           includes balance of each address in the json dump
+                              (takes about 2 minutes per 100 addresses)
+  --importprivkey=KEY         import private key from vanitygen
+  --importhex                 DEPRECATED, useless
+  --datadir=DATADIR           REMOVED OPTION: put full path in the --wallet option
+  -w, --wallet                wallet filename (defaults to wallet.dat)
+  --label=LABEL               label shown in the address book (defaults to '')
+  --testnet                   use testnet subdirectory and address type
+  --namecoin                  use namecoin address type
+  --eth                       use ethereum address type
+  --otherversion              use other network address type
+                              either P2PKH prefix only (e.g. 111) or
+                              full network info as 'name,p2pkh,p2sh,wif,segwithrp'
+                              (e.g. btc,0,0,0x80,bc)
+  --info                      display pubkey, privkey and hexkey
+  --reserve                   import as a reserve key (won't show in address book)
+  --multidelete               deletes data in your wallet according to file provided
+  --balance                   prints balance of specified address
+  --recover                   recover deleted keys (use with recov_size and recov_device)
+  --recov_device              device to read (e.g. /dev/sda1 or E: or a file)
+  --recov_size                number of bytes to read (e.g. 20Mo or 50Gio)
+  --recov_outputdir           output directory for recovered wallet
+  --clone_watchonly_from      path of the original wallet
+  --clone_watchonly_to        path of the resulting watch-only wallet
+  --dont_check_walletversion  don't check wallet version before running
+                              (WARNING: may break your wallet)
+  --random_key                print info of a randomly generated private key
+  --whitepaper                write the Bitcoin whitepaper using bitcoin-cli
+                              or blockchain.info
+  --minimal_encrypted_copy    write a copy of an encrypted wallet with only an empty
+                              address (safe to share when needing password help)
+  --tests                     run tests
 ```
 
 ### Common Examples
@@ -135,7 +133,8 @@ python pywallet3.py [options]
 ```bash
 # Modern Version (Python 3.9+)
 python3 pywallet3.py --dumpwallet --dumpwithbalance --wallet=./wallet.dat
-
+```
+```bash
 # Legacy Version (Python 2.x)
 python pywallet.py --dumpwallet --dumpwithbalance --wallet=./wallet.dat
 ```
@@ -144,7 +143,8 @@ python pywallet.py --dumpwallet --dumpwithbalance --wallet=./wallet.dat
 ```bash
 # Modern Version (Python 3.9+)
 python3 pywallet3.py --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
-
+```
+```bash
 # Legacy Version (Python 2.x)
 python pywallet.py --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
 ```
@@ -153,7 +153,8 @@ python pywallet.py --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjP
 ```bash
 # Modern Version (Python 3.9+)
 python3 pywallet3.py --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
-
+```
+```bash
 # Legacy Version (Python 2.x)
 python pywallet.py --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 ```
@@ -162,7 +163,8 @@ python pywallet.py --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 ```bash
 # Modern Version (Python 3.9+)
 python3 pywallet3.py --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./watch_only.dat
-
+```
+```bash
 # Legacy Version (Python 2.x)
 python pywallet.py --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./watch_only.dat
 ```
@@ -171,7 +173,8 @@ python pywallet.py --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./wa
 ```bash
 # Modern Version (Python 3.9+)
 python3 pywallet3.py --whitepaper
-
+```
+```bash
 # Legacy Version (Python 2.x)
 python pywallet.py --whitepaper
 ```
