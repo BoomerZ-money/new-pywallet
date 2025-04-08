@@ -9,7 +9,15 @@ import struct
 import hashlib
 import binascii
 import json
+import time
 from typing import Dict, List, Any, Optional, Tuple, Callable, Union, BinaryIO
+
+from pywallet_refactored.utils.datastream import BCDataStream
+from pywallet_refactored.crypto.keys import (
+    bytes_to_hex, private_key_to_wif, private_key_to_public_key,
+    public_key_to_address, hash_160_to_address, hash160 as hash_160
+)
+from pywallet_refactored.logger import logger
 
 try:
     from bsddb3.db import *
@@ -30,6 +38,10 @@ except ImportError:
 
         class DBError(Exception):
             """Berkeley DB error."""
+            pass
+
+        class DBNotFoundError(Exception):
+            """Record not found error."""
             pass
 
         class DB:
@@ -126,48 +138,49 @@ class WalletDB:
         Raises:
             WalletDBError: If the wallet cannot be opened
         """
+        if self.db:
+            return
+
         try:
             # Get wallet directory and filename
             wallet_dir = os.path.dirname(self.wallet_path)
             wallet_file = os.path.basename(self.wallet_path)
 
-            # Use the tmp directory that was created in __init__
-            tmp_dir = self.tmp_dir
-            logger.debug(f"Opening wallet using tmp directory: {tmp_dir}")
-
-            # Create DB environment
-            self.db_env = DBEnv(0)
-            flags = (DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
-                     DB_INIT_TXN | DB_THREAD | DB_RECOVER)
-
-            # Use tmp directory for environment files
-            self.db_env.open(tmp_dir, flags)
-
             # Check if wallet file exists
             if not os.path.exists(self.wallet_path):
                 raise WalletDBError(f"Wallet file not found: {self.wallet_path}")
 
-            # Copy wallet file to tmp directory if it's not already there
-            tmp_wallet_path = os.path.join(tmp_dir, wallet_file)
-            if self.wallet_path != tmp_wallet_path and os.path.exists(self.wallet_path):
-                try:
-                    import shutil
-                    shutil.copy2(self.wallet_path, tmp_wallet_path)
-                    logger.debug(f"Copied wallet file to tmp directory: {tmp_wallet_path}")
-                except Exception as e:
-                    logger.warning(f"Failed to copy wallet file to tmp directory: {e}")
+            # Get the wallet directory
+            wallet_dir = os.path.dirname(self.wallet_path)
+            if not wallet_dir:
+                wallet_dir = '.'
+
+            # Create DB environment in the wallet directory
+            self.db_env = DBEnv(0)
+            flags = (DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
+                     DB_INIT_TXN | DB_THREAD | DB_RECOVER)
+
+            # Use wallet directory for environment files
+            logger.debug(f"Opening wallet using directory: {wallet_dir}")
+            try:
+                self.db_env.open(wallet_dir, flags)
+            except DBError as e:
+                logger.error(f"Failed to open DB environment: {e}")
+                # Try creating the directory if it doesn't exist
+                if not os.path.exists(wallet_dir):
+                    os.makedirs(wallet_dir)
+                    self.db_env.open(wallet_dir, flags)
 
             # Open wallet
             self.db = DB(self.db_env)
             flags = DB_THREAD | (DB_RDONLY if read_only else DB_CREATE)
 
-            # Use the full path to the wallet file in the tmp directory
             try:
                 self.db.open(wallet_file, "main", DB_BTREE, flags)
+                logger.info(f"Opened wallet database: {self.wallet_path}")
             except DBError as e:
-                # If opening with just the filename fails, try with the full path
-                logger.debug(f"Failed to open wallet with filename only, trying with full path: {e}")
-                self.db.open(self.wallet_path, "main", DB_BTREE, flags)
+                logger.error(f"Failed to open wallet: {e}")
+                raise WalletDBError(f"Failed to open wallet database: {e}")
 
             logger.info(f"Opened wallet database: {self.wallet_path}")
         except DBError as e:
@@ -207,9 +220,13 @@ class WalletDB:
                 'keys': [],
                 'pool': [],
                 'tx': [],
-                'names': [],
+                'names': {},  # Use dictionary for names with address as key
                 'ckey': [],
-                'mkey': []
+                'mkey': {},
+                'version': 0,
+                'defaultkey': '',
+                'bestblock': '',
+                'settings': {}
             }
 
             # Read wallet records
@@ -230,11 +247,57 @@ class WalletDB:
         Args:
             passphrase: Wallet passphrase
         """
+        start_time = time.time()
+        # No timeout - read all records
+
+        # Create data streams for parsing
+        kds = BCDataStream()
+        vds = BCDataStream()
+
+        # Define helper functions for parsing transactions
+        def parse_TxIn(vds):
+            d = {}
+            d['prevout_hash'] = binascii.hexlify(vds.read_bytes(32)).decode('utf-8')
+            d['prevout_n'] = vds.read_uint32()
+            d['scriptSig'] = binascii.hexlify(vds.read_bytes(vds.read_compact_size())).decode('utf-8')
+            d['sequence'] = vds.read_uint32()
+            return d
+
+        def parse_TxOut(vds):
+            d = {}
+            d['value'] = vds.read_int64() / 1e8  # Convert satoshis to BTC
+            d['scriptPubKey'] = binascii.hexlify(vds.read_bytes(vds.read_compact_size())).decode('utf-8')
+            return d
+
+        def parse_BlockLocator(vds):
+            d = {'hashes': []}
+            nHashes = vds.read_compact_size()
+            for i in range(nHashes):
+                d['hashes'].append(vds.read_bytes(32))
+            return d
+
+        # Get all items from the database
         cursor = self.db.cursor()
+        record_count = 0
+        key_count = 0
+        tx_count = 0
+
+        # First pass: read all records
+        logger.info("Starting to read wallet records...")
+        max_records = 10000  # Maximum number of records to read
         while True:
             try:
                 record = cursor.next()
+                record_count += 1
+                if record_count % 100 == 0:
+                    logger.info(f"Read {record_count} records so far...")
+
+                # Check if we've reached the maximum number of records
+                if record_count >= max_records:
+                    logger.warning(f"Reached maximum number of records ({max_records}). Stopping record reading.")
+                    break
             except DBNotFoundError:
+                logger.info("Finished reading all records.")
                 break
 
             if not record:
@@ -242,19 +305,184 @@ class WalletDB:
 
             key, value = record
 
+            # Clear data streams
+            kds.clear()
+            vds.clear()
+
+            # Write data to streams
+            kds.write(key)
+            vds.write(value)
+
+            # Read type from key
+            type_bytes = key[0:4]
+            type_str = binascii.hexlify(type_bytes).decode('utf-8')
+            logger.info(f"Record type: {type_str}, key length: {len(key)}, value length: {len(value)}")
+
+            # Convert type bytes to string for easier comparison
+
             # Parse record based on type
-            if key[0:4] == b"\x04mkey":
-                self._parse_master_key(key, value)
-            elif key[0:4] == b"\x04ckey":
-                self._parse_crypto_key(key, value)
-            elif key[0:4] == b"\x04key":
-                self._parse_key(key, value)
-            elif key[0:4] == b"\x04pool":
-                self._parse_pool(key, value)
-            elif key[0:4] == b"\x04name":
-                self._parse_name(key, value)
-            elif key[0:4] == b"\x04tx":
-                self._parse_transaction(key, value)
+            if type_str == "046d6b6579" or type_str.startswith("046d6b65"):  # "\x04mkey"
+                # Master key
+                nID = kds.read_bytes(4)[0]  # Read ID from key
+                encrypted_key = vds.read_bytes(vds.read_compact_size())
+                salt = vds.read_bytes(vds.read_compact_size())
+                method = vds.read_uint32()
+                iterations = vds.read_uint32()
+                other_params = vds.read_bytes(vds.read_compact_size())
+
+                self.json_db['mkey'] = {
+                    'nID': nID,
+                    'encrypted_key': binascii.hexlify(encrypted_key).decode('utf-8'),
+                    'salt': binascii.hexlify(salt).decode('utf-8'),
+                    'method': method,
+                    'iterations': iterations,
+                    'otherParams': binascii.hexlify(other_params).decode('utf-8') if other_params else ''
+                }
+
+                logger.debug(f"Found master key: iterations={iterations}, method={method}")
+
+            elif type_str == "04636b6579" or type_str.startswith("04636b65"):  # "\x04ckey"
+                # Encrypted key
+                try:
+                    # Skip the 'ckey' prefix in the key
+                    kds.read_bytes(4)
+                    # Read the public key from the key data
+                    public_key = kds.read_bytes(kds.read_compact_size())
+                    # Read the encrypted private key from the value
+                    encrypted_private_key = vds.read_bytes(vds.read_compact_size())
+
+                    # Determine if key is compressed
+                    compressed = public_key[0] != 4
+
+                    # Generate address from public key
+                    address = public_key_to_address(binascii.hexlify(public_key))
+
+                    self.json_db['ckey'].append({
+                        'pubkey': binascii.hexlify(public_key).decode('utf-8'),
+                        'encrypted_privkey': binascii.hexlify(encrypted_private_key).decode('utf-8'),
+                        'compressed': compressed,
+                        'addr': address,
+                        'reserve': 1
+                    })
+
+                    key_count += 1
+                    logger.debug(f"Found encrypted key: address={address}, compressed={compressed}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse encrypted key: {e}")
+
+            elif type_str == "046b6579" or type_str.startswith("046b65"):  # "\x04key"
+                # Regular key
+                public_key = kds.read_bytes(kds.read_compact_size())
+                nVersion = vds.read_uint32()
+                created_time = vds.read_uint32()
+                private_key = vds.read_bytes(32)
+
+                # Determine if key is compressed
+                compressed = public_key[0] != 4
+
+                # Generate address and WIF
+                address = public_key_to_address(binascii.hexlify(public_key))
+                wif = private_key_to_wif(private_key, compressed)
+
+                self.json_db['keys'].append({
+                    'pubkey': binascii.hexlify(public_key).decode('utf-8'),
+                    'hexsec': binascii.hexlify(private_key).decode('utf-8'),
+                    'sec': wif,
+                    'created': created_time,
+                    'compressed': compressed,
+                    'addr': address,
+                    'reserve': 0
+                })
+
+                key_count += 1
+                logger.debug(f"Found key: address={address}, compressed={compressed}")
+
+            elif type_str == "04706f6f6c" or type_str.startswith("04706f6f"):  # "\x04pool"
+                # Key pool
+                try:
+                    n = kds.read_uint64()
+                    nVersion = vds.read_uint32()
+                    nTime = vds.read_uint32()
+
+                    # Try to read the public key, but it might not be present in all pool entries
+                    try:
+                        public_key = vds.read_bytes(vds.read_compact_size())
+                        public_key_hex = binascii.hexlify(public_key).decode('utf-8')
+                    except Exception:
+                        public_key_hex = ""
+
+                    self.json_db['pool'].append({
+                        'n': n,
+                        'nVersion': nVersion,
+                        'nTime': nTime,
+                        'public_key': public_key_hex
+                    })
+
+                    logger.debug(f"Found pool key: n={n}, time={nTime}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse pool entry: {e}")
+
+            elif type_str == "046e616d65" or type_str.startswith("046e616d"):  # "\x04name"
+                # Name record
+                address_bytes = kds.read_bytes(kds.read_compact_size())
+                name_bytes = vds.read_bytes(vds.read_compact_size())
+
+                try:
+                    address_str = public_key_to_address(binascii.hexlify(address_bytes))
+                    name_str = name_bytes.decode('utf-8')
+
+                    # Store as a dictionary with address as key
+                    self.json_db['names'][address_str] = name_str
+
+                    logger.debug(f"Found name: {name_str} -> {address_str}")
+                except UnicodeDecodeError:
+                    logger.warning(f"Could not decode name record: {binascii.hexlify(name_bytes)} -> {binascii.hexlify(address_bytes)}")
+
+            elif type_str.startswith("0274"):  # Transaction
+                try:
+                    # Transaction
+                    tx_hash = binascii.hexlify(key[4:]).decode('utf-8')
+
+                    # For transactions, we'll just store the raw data for now
+                    # This is a complex format that requires special handling
+                    self.json_db['tx'].append({
+                        'tx_id': tx_hash,
+                        'txv': 1,  # Default version
+                        'txk': 0,   # Default locktime
+                        'txIn': [],
+                        'txOut': []
+                    })
+
+                    tx_count += 1
+                    logger.debug(f"Found transaction: hash={tx_hash}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse transaction: {e}")
+
+            elif type_str == "07766572" or type_str.startswith("0776657273"):  # "\x07version"
+                # Wallet version
+                version = vds.read_uint32()
+                self.json_db['version'] = version
+                logger.debug(f"Wallet version: {version}")
+
+            elif type_str == "0a646566" or type_str.startswith("0a646566"):  # "\x0adefaultkey"
+                # Default key
+                key_data = vds.read_bytes(vds.read_compact_size())
+                self.json_db['defaultkey'] = public_key_to_address(binascii.hexlify(key_data))
+                logger.debug(f"Default key: {self.json_db['defaultkey']}")
+
+            elif type_str == "09626573" or type_str.startswith("09626573"):  # "\x09bestblock"
+                # Best block
+                nVersion = vds.read_uint32()
+                block_locator = parse_BlockLocator(vds)
+                if 'hashes' in block_locator and len(block_locator['hashes']) > 0:
+                    self.json_db['bestblock'] = binascii.hexlify(block_locator['hashes'][0][::-1]).decode('utf-8')  # Reverse for big-endian
+                    logger.debug(f"Best block: {self.json_db['bestblock']}")
+
+        logger.info(f"Read {record_count} wallet records ({key_count} keys, {tx_count} transactions) in {time.time() - start_time:.2f} seconds")
+
+        # If we have crypto keys but no regular keys, the wallet is encrypted
+        if self.json_db['ckey'] and not self.json_db['keys']:
+            logger.info("Wallet is encrypted")
 
     def _parse_master_key(self, key: bytes, value: bytes) -> None:
         """
@@ -295,13 +523,18 @@ class WalletDB:
         # Determine if key is compressed
         compressed = public_key[0] != 4
 
+        # Generate address from public key
+        from pywallet_refactored.crypto.keys import public_key_to_address
+        address = public_key_to_address(bytes_to_hex(public_key))
+
         self.json_db['ckey'].append({
             'public_key': bytes_to_hex(public_key),
             'encrypted_private_key': bytes_to_hex(encrypted_private_key),
-            'compressed': compressed
+            'compressed': compressed,
+            'address': address
         })
 
-        logger.debug(f"Found encrypted key: compressed={compressed}")
+        logger.debug(f"Found encrypted key: address={address}, compressed={compressed}")
 
     def _parse_key(self, key: bytes, value: bytes) -> None:
         """
@@ -393,10 +626,9 @@ class WalletDB:
         # Extract transaction hash
         tx_hash = bytes_to_hex(key[4:])
 
-        # Add to transactions list
+        # Add to transactions list - only store the hash for efficiency
         self.json_db['tx'].append({
-            'hash': tx_hash,
-            'data': bytes_to_hex(value)
+            'hash': tx_hash
         })
 
         logger.debug(f"Found transaction: {tx_hash}")

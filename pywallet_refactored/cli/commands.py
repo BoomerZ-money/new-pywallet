@@ -43,8 +43,12 @@ def dump_wallet(args: Dict[str, Any]) -> int:
         if output_file is None or output_file is True:
             output_file = os.path.splitext(wallet_path)[0] + '.json'
 
-        # Force output file to be the one specified in the command line
-        output_file = './final_test.json'
+        # Check if output should go to stdout
+        output_to_stdout = output_file is None or output_file is True or output_file == '-'
+
+        # Check if stdout is being redirected
+        import sys
+        stdout_is_redirected = not sys.stdout.isatty()
 
         logger.debug(f"Using output file: {output_file}")
 
@@ -54,45 +58,40 @@ def dump_wallet(args: Dict[str, Any]) -> int:
         # Open wallet and read its contents
         try:
             with WalletDB(wallet_path) as wallet:
-                # Read wallet
-                wallet.read_wallet(passphrase)
-
-                # Dump wallet to the specified output file
+                # Read wallet (only once)
                 wallet_data = wallet.read_wallet(passphrase)
 
-                # Create a copy of the wallet data for output
-                output_data = {
-                    'keys': [],
-                    'transactions': len(wallet_data['tx']),
-                    'names': wallet_data['names'],
-                    'encrypted': bool(wallet_data['ckey'])
-                }
+                # Just use the wallet data directly - it's already in the right format
+                output_data = wallet_data
 
-                # Add keys
-                for key in wallet_data['keys']:
-                    key_data = {
-                        'address': key['address'],
-                        'compressed': key['compressed']
-                    }
+                # Add encrypted flag
+                output_data['encrypted'] = bool(wallet_data['ckey'])
 
-                    if not args.get('no_private', False):
-                        key_data['wif'] = key['wif']
+                # Add labels to keys
+                for key in output_data['keys']:
+                    # Check if there's a label for this address
+                    if key['addr'] in wallet_data['names']:
+                        key['label'] = wallet_data['names'][key['addr']]
+                        key['reserve'] = 0  # Keys with labels are not reserve keys
+                    else:
+                        key['reserve'] = 1  # Keys without labels are reserve keys
 
-                    output_data['keys'].append(key_data)
-
-                # Write to file
-                with open(output_file, 'w') as f:
-                    json.dump(output_data, f, indent=4)
-
-                # Also write to wallet.json for backward compatibility
-                wallet_json_path = os.path.splitext(wallet_path)[0] + '.json'
-                if os.path.abspath(output_file) != os.path.abspath(wallet_json_path):
-                    with open(wallet_json_path, 'w') as f:
+                # If output should go to stdout or stdout is being redirected, print it directly
+                if output_to_stdout or stdout_is_redirected:
+                    print(json.dumps(output_data, indent=4))
+                    logger.info("Wallet dumped to stdout")
+                else:
+                    # Write to file
+                    with open(output_file, 'w') as f:
                         json.dump(output_data, f, indent=4)
 
-                logger.info(f"Wallet dumped to {output_file}")
-                # Print the output file path for debugging
-                print(f"Output file: {output_file}")
+                    # Also write to wallet.json for backward compatibility
+                    wallet_json_path = os.path.splitext(wallet_path)[0] + '.json'
+                    if os.path.abspath(output_file) != os.path.abspath(wallet_json_path):
+                        with open(wallet_json_path, 'w') as f:
+                            json.dump(output_data, f, indent=4)
+
+                    logger.info(f"Wallet dumped to {output_file}")
         except Exception as e:
             # If reading the wallet fails, create a minimal wallet dump
             logger.warning(f"Failed to read wallet: {e}. Creating empty wallet dump.")
@@ -103,19 +102,22 @@ def dump_wallet(args: Dict[str, Any]) -> int:
                 'encrypted': False
             }
 
-            # Write to file
-            with open(output_file, 'w') as f:
-                json.dump(output_data, f, indent=4)
-
-            # Also write to wallet.json for backward compatibility
-            wallet_json_path = os.path.splitext(wallet_path)[0] + '.json'
-            if os.path.abspath(output_file) != os.path.abspath(wallet_json_path):
-                with open(wallet_json_path, 'w') as f:
+            # If output should go to stdout or stdout is being redirected, print it directly
+            if output_to_stdout or stdout_is_redirected:
+                print(json.dumps(output_data, indent=4))
+                logger.info("Empty wallet dumped to stdout")
+            else:
+                # Write to file
+                with open(output_file, 'w') as f:
                     json.dump(output_data, f, indent=4)
 
-            logger.info(f"Empty wallet dumped to {output_file}")
-            # Print the output file path for debugging
-            print(f"Output file: {output_file}")
+                # Also write to wallet.json for backward compatibility
+                wallet_json_path = os.path.splitext(wallet_path)[0] + '.json'
+                if os.path.abspath(output_file) != os.path.abspath(wallet_json_path):
+                    with open(wallet_json_path, 'w') as f:
+                        json.dump(output_data, f, indent=4)
+
+                logger.info(f"Empty wallet dumped to {output_file}")
         return 0
     except WalletDBError as e:
         logger.error(f"Failed to dump wallet: {e}")
