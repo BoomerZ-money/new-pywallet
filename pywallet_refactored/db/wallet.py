@@ -49,6 +49,41 @@ except ImportError:
                 raise DBError("bsddb module not available")
 
 from pywallet_refactored.logger import logger
+
+def get_tmp_dir() -> str:
+    """
+    Get the path to the tmp directory for Berkeley DB temporary files.
+
+    Returns:
+        Path to the tmp directory
+    """
+    # Get the absolute path to the current file
+    current_file = os.path.abspath(__file__)
+
+    # Get the directory containing the current file (db directory)
+    db_dir = os.path.dirname(current_file)
+
+    # Get the parent directory (pywallet_refactored directory)
+    pywallet_refactored_dir = os.path.dirname(db_dir)
+
+    # Get the parent directory (project root directory)
+    project_root = os.path.dirname(pywallet_refactored_dir)
+
+    # Define the tmp directory path
+    tmp_dir = os.path.join(project_root, 'tmp')
+
+    # Create the directory if it doesn't exist
+    try:
+        os.makedirs(tmp_dir, exist_ok=True)
+        logger.debug(f"Using tmp directory: {tmp_dir}")
+    except Exception as e:
+        logger.error(f"Failed to create tmp directory {tmp_dir}: {e}")
+        # Fallback to a temporary directory in the current directory
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+        logger.debug(f"Using fallback tmp directory: {tmp_dir}")
+
+    return tmp_dir
 from pywallet_refactored.config import config
 from pywallet_refactored.utils.common import bytes_to_hex, hex_to_bytes
 
@@ -78,6 +113,9 @@ class WalletDB:
             'mkey': []
         }
 
+        # Ensure tmp directory exists
+        self.tmp_dir = get_tmp_dir()
+
     def open(self, read_only: bool = True) -> None:
         """
         Open the wallet database.
@@ -93,16 +131,43 @@ class WalletDB:
             wallet_dir = os.path.dirname(self.wallet_path)
             wallet_file = os.path.basename(self.wallet_path)
 
+            # Use the tmp directory that was created in __init__
+            tmp_dir = self.tmp_dir
+            logger.debug(f"Opening wallet using tmp directory: {tmp_dir}")
+
             # Create DB environment
             self.db_env = DBEnv(0)
             flags = (DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
                      DB_INIT_TXN | DB_THREAD | DB_RECOVER)
-            self.db_env.open(wallet_dir, flags)
+
+            # Use tmp directory for environment files
+            self.db_env.open(tmp_dir, flags)
+
+            # Check if wallet file exists
+            if not os.path.exists(self.wallet_path):
+                raise WalletDBError(f"Wallet file not found: {self.wallet_path}")
+
+            # Copy wallet file to tmp directory if it's not already there
+            tmp_wallet_path = os.path.join(tmp_dir, wallet_file)
+            if self.wallet_path != tmp_wallet_path and os.path.exists(self.wallet_path):
+                try:
+                    import shutil
+                    shutil.copy2(self.wallet_path, tmp_wallet_path)
+                    logger.debug(f"Copied wallet file to tmp directory: {tmp_wallet_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to copy wallet file to tmp directory: {e}")
 
             # Open wallet
             self.db = DB(self.db_env)
             flags = DB_THREAD | (DB_RDONLY if read_only else DB_CREATE)
-            self.db.open(wallet_file, "main", DB_BTREE, flags)
+
+            # Use the full path to the wallet file in the tmp directory
+            try:
+                self.db.open(wallet_file, "main", DB_BTREE, flags)
+            except DBError as e:
+                # If opening with just the filename fails, try with the full path
+                logger.debug(f"Failed to open wallet with filename only, trying with full path: {e}")
+                self.db.open(self.wallet_path, "main", DB_BTREE, flags)
 
             logger.info(f"Opened wallet database: {self.wallet_path}")
         except DBError as e:
@@ -531,18 +596,45 @@ class WalletDB:
             # Create directory if it doesn't exist
             os.makedirs(wallet_dir, exist_ok=True)
 
+            # Use the tmp directory that was created in __init__
+            tmp_dir = self.tmp_dir
+            logger.debug(f"Creating new wallet using tmp directory: {tmp_dir}")
+
             # Create DB environment
             self.db_env = DBEnv(0)
             flags = (DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
                      DB_INIT_TXN | DB_THREAD | DB_RECOVER)
-            self.db_env.open(wallet_dir, flags)
+            self.db_env.open(tmp_dir, flags)
 
             # Create wallet
             self.db = DB(self.db_env)
-            self.db.open(wallet_file, "main", DB_BTREE, DB_CREATE)
+
+            # Use the full path to the wallet file in the tmp directory
+            try:
+                self.db.open(wallet_file, "main", DB_BTREE, DB_CREATE)
+            except DBError as e:
+                # If opening with just the filename fails, try with the full path
+                logger.debug(f"Failed to open wallet with filename only, trying with full path: {e}")
+                self.db.open(self.wallet_path, "main", DB_BTREE, DB_CREATE)
 
             # Add version record
             self.db.put(b"\x04version", struct.pack("<I", 1))
+
+            # Close the database to ensure all changes are written
+            self.db.close()
+            self.db_env.close()
+            self.db = None
+            self.db_env = None
+
+            # Copy the wallet file from tmp directory to the specified location
+            tmp_wallet_path = os.path.join(tmp_dir, wallet_file)
+            if os.path.exists(tmp_wallet_path):
+                try:
+                    import shutil
+                    shutil.copy2(tmp_wallet_path, self.wallet_path)
+                    logger.debug(f"Copied wallet file from tmp directory to: {self.wallet_path}")
+                except Exception as e:
+                    logger.error(f"Failed to copy wallet file from tmp directory: {e}")
 
             logger.info(f"Created new wallet: {self.wallet_path}")
         except Exception as e:
@@ -567,11 +659,15 @@ class WalletDB:
             backup_dir = os.path.dirname(backup_path)
             os.makedirs(backup_dir, exist_ok=True)
 
+            # Use the tmp directory that was created in __init__
+            tmp_dir = self.tmp_dir
+            logger.debug(f"Creating backup using tmp directory: {tmp_dir}")
+
             # Create new DB
             backup_env = DBEnv(0)
             flags = (DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
                      DB_INIT_TXN | DB_THREAD | DB_RECOVER)
-            backup_env.open(backup_dir, flags)
+            backup_env.open(tmp_dir, flags)
 
             backup_db = DB(backup_env)
             backup_db.open(os.path.basename(backup_path), "main", DB_BTREE, DB_CREATE)
@@ -620,11 +716,15 @@ class WalletDB:
             output_dir = os.path.dirname(output_path)
             os.makedirs(output_dir, exist_ok=True)
 
+            # Use the tmp directory that was created in __init__
+            tmp_dir = self.tmp_dir
+            logger.debug(f"Creating watch-only wallet using tmp directory: {tmp_dir}")
+
             # Create new DB
             watch_env = DBEnv(0)
             flags = (DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
                      DB_INIT_TXN | DB_THREAD | DB_RECOVER)
-            watch_env.open(output_dir, flags)
+            watch_env.open(tmp_dir, flags)
 
             watch_db = DB(watch_env)
             watch_db.open(os.path.basename(output_path), "main", DB_BTREE, DB_CREATE)

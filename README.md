@@ -1,4 +1,4 @@
-# PyWallet - Bitcoin Wallet Tool (Original Version)
+# PyWallet - Bitcoin Wallet Tool
 
 ## Description
 A Python-based tool for managing Bitcoin wallets. PyWallet allows you to dump, import, and recover Bitcoin wallet keys, as well as perform various other wallet operations.

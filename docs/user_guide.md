@@ -118,7 +118,11 @@ This will display the available commands and options.
 To dump the contents of a wallet to a JSON file:
 
 ```bash
+# Using the modern subcommand syntax
 python -m pywallet_refactored dump --wallet=/path/to/wallet.dat --output=keys.json
+
+# Using the legacy flag syntax
+python -m pywallet_refactored --dumpwallet --wallet=/path/to/wallet.dat --output=keys.json
 ```
 
 Options:

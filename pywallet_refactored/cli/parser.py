@@ -46,6 +46,10 @@ def create_parser() -> argparse.ArgumentParser:
         '--passphrase', '-p',
         help='Wallet passphrase for encrypted wallets'
     )
+    wallet_group.add_argument(
+        '--output', '-o',
+        help='Output file for commands that generate output'
+    )
 
     # Commands
     subparsers = parser.add_subparsers(

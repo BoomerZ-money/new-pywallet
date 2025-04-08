@@ -46,7 +46,7 @@ docker run -v /path/to/your/wallet:/wallet pywallet dump --wallet=/wallet/wallet
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/pywallet.git
+   git clone https://github.com/BoomerZ-money/pywallet.git
    cd pywallet
    ```
 
@@ -83,8 +83,11 @@ PyWallet can be used as a command-line tool with various subcommands:
 # Show help
 python -m pywallet_refactored --help
 
-# Dump wallet
+# Dump wallet (modern syntax)
 python -m pywallet_refactored dump --wallet=/path/to/wallet.dat --output=keys.json
+
+# Dump wallet (legacy syntax)
+python -m pywallet_refactored --dumpwallet --wallet=/path/to/wallet.dat --output=keys.json
 
 # Import a private key
 python -m pywallet_refactored import 5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8 --wallet=/path/to/wallet.dat
@@ -125,8 +128,11 @@ python -m pywallet_refactored recover --file=/path/to/wallet.dat --output=recove
 ### Docker Examples
 
 ```bash
-# Dump wallet
+# Dump wallet (modern syntax)
 docker run -v $(pwd):/wallet pywallet dump --wallet=/wallet/wallet.dat --output=/wallet/keys.json
+
+# Dump wallet (legacy syntax)
+docker run -v $(pwd):/wallet pywallet --dumpwallet --wallet=/wallet/wallet.dat --output=/wallet/keys.json
 
 # Import a private key
 docker run -v $(pwd):/wallet pywallet import 5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8 --wallet=/wallet/wallet.dat

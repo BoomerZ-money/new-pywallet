@@ -69,6 +69,11 @@ log/
 tmp/
 temp/
 
+# Berkeley DB temporary files
+__db.*
+__db.00*
+log.*
+
 # Database files
 *.db
 *.sqlite
