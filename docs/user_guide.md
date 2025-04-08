@@ -28,6 +28,9 @@ This guide provides detailed instructions for using PyWallet to manage Bitcoin w
   - [Recovering Keys from Devices](#recovering-keys-from-devices)
   - [Decrypting Encrypted Keys](#decrypting-encrypted-keys)
 - [Using Docker](#using-docker)
+- [Testing](#testing)
+  - [Running Tests](#running-tests)
+  - [Test Structure](#test-structure)
 - [Troubleshooting](#troubleshooting)
 
 ## Installation
@@ -392,6 +395,50 @@ docker run -v $(pwd):/wallet pywallet dump --wallet=/wallet/wallet.dat --output=
 ```
 
 When using Docker, you need to mount your wallet directory as a volume to make it accessible to the container.
+
+## Testing
+
+PyWallet includes a comprehensive test suite to ensure the reliability and correctness of its functionality.
+
+### Running Tests
+
+To run the complete test suite:
+
+```bash
+python -m unittest discover -s tests
+```
+
+To run specific test modules:
+
+```bash
+# Run integration tests
+python -m unittest tests.test_pywallet_refactored
+
+# Run basic unit tests
+python -m unittest pywallet_refactored.tests.test_basic
+```
+
+If you're developing new features or fixing bugs, it's recommended to run the tests to ensure your changes don't break existing functionality.
+
+### Test Structure
+
+The test suite is organized into two main areas:
+
+1. **Basic Tests** (`pywallet_refactored/tests/test_basic.py`): Tests for core functionality and utility functions
+2. **Integration Tests** (`tests/test_pywallet_refactored.py`): Tests for command-line interface and end-to-end functionality
+
+The tests cover various aspects of PyWallet, including:
+
+- Wallet dumping and importing
+- Balance checking
+- Transaction history retrieval
+- Watch-only wallet creation
+- Batch operations for keys
+- Output parameter functionality
+
+If you're adding new features, consider adding tests to ensure they work correctly and continue to work in the future.
+
+For more detailed information about testing, see the [Testing Guide](testing.md).
 
 ## Troubleshooting
 

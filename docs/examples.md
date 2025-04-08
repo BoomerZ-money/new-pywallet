@@ -14,6 +14,9 @@ This document provides practical examples of using PyWallet for various tasks.
   - [Encryption and Decryption](#encryption-and-decryption)
   - [Recovery](#recovery)
 - [Docker Examples](#docker-examples)
+- [Testing Examples](#testing-examples)
+  - [Running Tests](#running-tests)
+  - [Writing Tests](#writing-tests)
 
 ## Command-Line Examples
 
@@ -131,7 +134,7 @@ from pywallet_refactored.db.wallet import WalletDB
 with WalletDB('/path/to/wallet.dat') as wallet:
     # Read wallet data
     wallet_data = wallet.read_wallet()
-    
+
     # Print wallet information
     print(f"Found {len(wallet_data['keys'])} keys")
     for key in wallet_data['keys']:
@@ -147,7 +150,7 @@ from pywallet_refactored.db.wallet import WalletDB
 with WalletDB('/path/to/wallet.dat') as wallet:
     # Read wallet data with passphrase
     wallet_data = wallet.read_wallet(passphrase='your_passphrase')
-    
+
     # Print wallet information
     print(f"Found {len(wallet_data['keys'])} keys")
     for key in wallet_data['keys']:
@@ -164,7 +167,7 @@ from pywallet_refactored.db.wallet import WalletDB
 with WalletDB('/path/to/wallet.dat') as wallet:
     # Import a key
     address = wallet.import_key('5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8', label='My Key')
-    
+
     print(f"Imported key with address: {address}")
 ```
 
@@ -334,9 +337,9 @@ if encrypted_keys and master_keys:
     recovered_keys = recover_keys_from_passphrase(
         encrypted_keys, master_keys[0], passphrase
     )
-    
+
     keys.extend(recovered_keys)
-    
+
     print(f"Successfully decrypted {len(recovered_keys)} keys")
 
 # Dump keys to file
@@ -395,3 +398,115 @@ docker run -v $(pwd):/wallet pywallet recover --file=/wallet/wallet.dat --output
 # Recover keys from an encrypted wallet file
 docker run -v $(pwd):/wallet pywallet recover --file=/wallet/wallet.dat --output=/wallet/recovered_keys.json --passphrase="your passphrase"
 ```
+
+## Testing Examples
+
+This section provides examples of running and writing tests for PyWallet.
+
+### Running Tests
+
+#### Running All Tests
+
+```bash
+# Run all tests
+python -m unittest discover -s tests
+
+# Run all tests with verbose output
+python -m unittest discover -s tests -v
+```
+
+#### Running Specific Tests
+
+```bash
+# Run integration tests
+python -m unittest tests.test_pywallet_refactored
+
+# Run basic unit tests
+python -m unittest pywallet_refactored.tests.test_basic
+
+# Run a specific test case
+python -m unittest tests.test_pywallet_refactored.TestPyWalletRefactored
+
+# Run a specific test method
+python -m unittest tests.test_pywallet_refactored.TestPyWalletRefactored.test_dump_wallet
+```
+
+#### Running Tests with Coverage
+
+```bash
+# Install pytest and pytest-cov
+pip install pytest pytest-cov
+
+# Run tests with coverage reporting
+python -m pytest --cov=pywallet_refactored tests/
+
+# Generate HTML coverage report
+python -m pytest --cov=pywallet_refactored --cov-report=html tests/
+```
+
+### Writing Tests
+
+#### Writing a Basic Unit Test
+
+```python
+import unittest
+from pywallet_refactored.crypto import keys
+
+class TestKeys(unittest.TestCase):
+    def test_generate_key_pair(self):
+        # Test that a key pair is generated correctly
+        key_pair = keys.generate_key_pair()
+        self.assertIn('address', key_pair)
+        self.assertIn('wif', key_pair)
+        self.assertIn('public_key', key_pair)
+        self.assertIn('private_key', key_pair)
+
+        # Test that the address is valid
+        self.assertTrue(keys.is_valid_address(key_pair['address']))
+
+        # Test that the private key is valid
+        self.assertTrue(keys.is_valid_wif(key_pair['wif']))
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+#### Writing an Integration Test
+
+```python
+import unittest
+import os
+import tempfile
+from unittest.mock import patch
+from pywallet_refactored.__main__ import main
+
+class TestCommandLine(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory for test files
+        self.test_dir = tempfile.mkdtemp()
+        self.test_wallet_path = os.path.join(self.test_dir, "test_wallet.dat")
+        self.test_output_json = os.path.join(self.test_dir, "output.json")
+
+    def tearDown(self):
+        # Clean up test files
+        for file in [self.test_wallet_path, self.test_output_json]:
+            if os.path.exists(file):
+                os.remove(file)
+        os.rmdir(self.test_dir)
+
+    def test_balance_check(self):
+        # Mock sys.argv to simulate command line arguments
+        with patch('sys.argv', ['pywallet_refactored.py', 'balance', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa']):
+            # This is a simplified test that just checks if the command runs without exceptions
+            try:
+                main()
+                # If we get here without exceptions, the test passes
+            except SystemExit as e:
+                # Some commands exit with sys.exit(), which is expected
+                self.assertEqual(e.code, 0)
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+For more detailed information about testing, see the [Testing Guide](testing.md).

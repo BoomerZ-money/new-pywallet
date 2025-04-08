@@ -240,18 +240,22 @@ To run the test suite:
 
 ```bash
 # Run all tests
-python run_tests.py
+python -m unittest discover -s tests
 
 # Run specific test modules
-python -m unittest pywallet_refactored.tests.test_crypto
-python -m unittest pywallet_refactored.tests.test_wallet
+python -m unittest tests.test_pywallet_refactored
+python -m unittest pywallet_refactored.tests.test_basic
 
-# Run with unittest discover
-python -m unittest discover -s pywallet_refactored/tests
-
-# Run with pytest
-pytest pywallet_refactored/tests
+# Run basic tests only
+python -m unittest pywallet_refactored.tests.test_basic
 ```
+
+### Test Structure
+
+The test suite is organized into two main areas:
+
+1. **Basic Tests** (`pywallet_refactored/tests/test_basic.py`): Tests for core functionality and utility functions
+2. **Integration Tests** (`tests/test_pywallet_refactored.py`): Tests for command-line interface and end-to-end functionality
 
 ### Test Coverage
 
@@ -259,14 +263,17 @@ The test suite includes comprehensive tests for:
 
 - Cryptographic functions (keys, AES encryption)
 - Wallet database operations
-- Blockchain API interactions
-- Batch operations for keys
 - Command-line interface commands
+- Balance checking functionality
+- Transaction history retrieval
+- Watch-only wallet creation
+- Batch operations for keys
+- Output parameter functionality
 
-To run tests with coverage reporting:
+To run tests with coverage reporting (requires pytest and pytest-cov):
 
 ```bash
-python -m pytest --cov=pywallet_refactored pywallet_refactored/tests/
+python -m pytest --cov=pywallet_refactored tests/
 ```
 
 ### Code Style

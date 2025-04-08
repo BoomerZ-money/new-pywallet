@@ -14,6 +14,9 @@ This document provides detailed information about the PyWallet API.
 - [Batch Operations](#batch-operations)
 - [Recovery](#recovery)
 - [Utilities](#utilities)
+- [Testing](#testing)
+  - [Basic Tests](#basic-tests)
+  - [Integration Tests](#integration-tests)
 
 ## Configuration
 
@@ -897,5 +900,61 @@ print(bytes_data)  # b'hello world'
 
 # Calculate SHA256 hash
 hash_value = sha256_hash(data)
-print(hash_value)  # 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'
 ```
+
+## Testing
+
+PyWallet includes a comprehensive test suite to ensure the reliability and correctness of its functionality.
+
+### Basic Tests
+
+#### `pywallet_refactored.tests.test_basic`
+
+Basic tests for core functionality and utility functions.
+
+##### Test Cases
+
+- `TestBasicFunctions`: Tests for basic utility functions
+  - `test_is_valid_address`: Tests address validation
+  - `test_is_valid_wif`: Tests WIF key validation
+  - `test_generate_key_pair`: Tests key pair generation
+
+#### Example
+
+```python
+import unittest
+from pywallet_refactored.tests.test_basic import TestBasicFunctions
+
+# Run all tests in TestBasicFunctions
+suite = unittest.TestLoader().loadTestsFromTestCase(TestBasicFunctions)
+unittest.TextTestRunner().run(suite)
+```
+
+### Integration Tests
+
+#### `tests.test_pywallet_refactored`
+
+Integration tests for command-line interface and end-to-end functionality.
+
+##### Test Cases
+
+- `TestPyWalletRefactored`: Tests for the main command-line interface
+  - `test_dump_wallet`: Tests wallet dumping functionality
+  - `test_balance_check`: Tests balance checking functionality
+  - `test_transaction_history`: Tests transaction history functionality
+  - `test_watch_only_wallet`: Tests watch-only wallet creation
+  - `test_batch_operations`: Tests batch operations for keys
+  - `test_output_parameter`: Tests the --output parameter for commands
+
+#### Example
+
+```python
+import unittest
+from tests.test_pywallet_refactored import TestPyWalletRefactored
+
+# Run all tests in TestPyWalletRefactored
+suite = unittest.TestLoader().loadTestsFromTestCase(TestPyWalletRefactored)
+unittest.TextTestRunner().run(suite)
+```
+
+For more detailed information about testing, see the [Testing Guide](testing.md).

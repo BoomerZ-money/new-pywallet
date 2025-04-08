@@ -121,7 +121,7 @@ docker run pywallet [options]
 
 1. **Dump wallet with balance information:**
 ```bash
-python3 pywallet3.py --dumpwallet --dumpwithbalance --wallet=./wallet.dat
+python -m pywallet3 --dumpwallet --dumpwithbalance --wallet=./wallet.dat
 ```
 With Docker:
 ```bash
@@ -130,22 +130,22 @@ docker run -v $(pwd):/wallet pywallet --dumpwallet --dumpwithbalance --wallet=/w
 
 2. **Import a private key:**
 ```bash
-python3 pywallet3.py --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
+python -m pywallet3 --importprivkey=5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8
 ```
 
 3. **Check balance of specific address:**
 ```bash
-python3 pywallet3.py --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+python -m pywallet3 --balance=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 ```
 
 4. **Create watch-only wallet:**
 ```bash
-python3 pywallet3.py --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./watch_only.dat
+python -m pywallet3 --clone_watchonly_from=./wallet.dat --clone_watchonly_to=./watch_only.dat
 ```
 
 5. **Extract Bitcoin whitepaper:**
 ```bash
-python3 pywallet3.py --whitepaper
+python -m pywallet3 --whitepaper
 ```
 
 > **Note:** Replace file paths and addresses with your actual values. Always verify addresses and keys before using them.
@@ -171,7 +171,7 @@ PyWallet includes:
 
 ### Running Tests
 
-To run the test suite:
+To run the test suite for the original PyWallet:
 
 ```bash
 python pywallet3.py --tests
@@ -182,6 +182,8 @@ Or with Docker:
 ```bash
 docker run pywallet --tests
 ```
+
+For the refactored version, see [README_refactored.md](README_refactored.md#running-tests) for detailed testing instructions.
 
 ### Project Structure
 

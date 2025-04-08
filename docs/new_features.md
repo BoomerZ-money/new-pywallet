@@ -8,6 +8,7 @@ This document provides detailed information about the new features added to the 
 - [Transaction History](#transaction-history)
 - [Watch-Only Wallet Creation](#watch-only-wallet-creation)
 - [Batch Operations](#batch-operations)
+- [Comprehensive Test Suite](#comprehensive-test-suite)
 
 ## Balance Checking
 
@@ -92,7 +93,7 @@ print(f"Found {len(transactions)} transactions")
 for tx in transactions[:5]:  # Show first 5 transactions
     print(f"Transaction: {tx['hash']}")
     print(f"Time: {tx.get('time', 'Unknown')}")
-    
+
     # Save to file
     with open('transactions.json', 'w') as f:
         json.dump(transactions, f, indent=4)
@@ -262,3 +263,52 @@ address,wif,private_key,compressed
 5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz8 # First key
 5KQNQrchXvxdR5WNi5Y1BqQyfeHGLEyqKHDB3XyCQYJjPo5rtz9 # Second key
 ```
+
+## Comprehensive Test Suite
+
+The refactored PyWallet includes a comprehensive test suite to ensure the reliability and correctness of its functionality.
+
+### Test Structure
+
+The test suite is organized into two main areas:
+
+1. **Basic Tests** (`pywallet_refactored/tests/test_basic.py`): Tests for core functionality and utility functions
+2. **Integration Tests** (`tests/test_pywallet_refactored.py`): Tests for command-line interface and end-to-end functionality
+
+### Running Tests
+
+To run the complete test suite:
+
+```bash
+python -m unittest discover -s tests
+```
+
+To run specific test modules:
+
+```bash
+# Run integration tests
+python -m unittest tests.test_pywallet_refactored
+
+# Run basic unit tests
+python -m unittest pywallet_refactored.tests.test_basic
+```
+
+### Test Coverage
+
+The test suite includes comprehensive tests for:
+
+- Wallet dumping and importing
+- Balance checking functionality
+- Transaction history retrieval
+- Watch-only wallet creation
+- Batch operations for keys
+- Output parameter functionality
+
+### Benefits
+
+- **Reliability**: Ensures that the code works as expected
+- **Regression Prevention**: Prevents new changes from breaking existing functionality
+- **Documentation**: Serves as executable documentation for how the code should work
+- **Confidence**: Provides confidence when making changes or adding new features
+
+For more detailed information about testing, see the [Testing Guide](testing.md).
