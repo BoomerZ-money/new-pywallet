@@ -15,25 +15,163 @@ This advanced tool attempts to brute force a Bitcoin wallet password using the e
 - **System Information**: Details about your system's capabilities
 - **Multi-processing**: Utilizes all available CPU cores for maximum performance
 
-## Requirements
+## Installation Instructions
 
+### Prerequisites
 - Python 3.6 or higher
-- Required packages:
-  - pycryptodome
-  - tqdm (for progress bars)
-  - colorama (for colored output)
-  - psutil (for system information)
-  - numpy and pyopencl (optional, for GPU acceleration)
+- pip (Python package installer)
+- C++ compiler (for some optimizations)
 
-Install the required packages:
-
+### Basic Installation (All Platforms)
 ```bash
-pip install pycryptodome tqdm colorama psutil
+pip install -r requirements_brute_force.txt
 ```
 
-For GPU acceleration (optional):
+### Platform-Specific Installations
+
+#### Apple Silicon (M1/M2/M3)
 ```bash
-pip install numpy pyopencl
+# Install Homebrew if not already installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install required system packages
+brew install python@3.9 openssl readline
+
+# Install Python requirements with Metal support
+pip install -r requirements_brute_force.txt
+
+# Optional: Install additional Apple-specific optimizations
+xcode-select --install
+pip install tensorflow-macos tensorflow-metal
+```
+
+#### Intel/AMD (x86_64)
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y build-essential python3-dev opencl-headers ocl-icd-opencl-dev
+
+# Install Intel optimizations
+pip install -r requirements_brute_force.txt
+pip install intel-tensorflow  # Optional: for better performance
+
+# For NVIDIA GPU support
+# First install NVIDIA drivers and CUDA toolkit from https://developer.nvidia.com/cuda-downloads
+pip install nvidia-pyindex
+pip install nvidia-tensorflow  # Optional: for GPU acceleration
+```
+
+#### Windows
+```powershell
+# Install Visual Studio Build Tools (if not already installed)
+# Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+# Install base requirements
+pip install -r requirements_brute_force.txt
+
+# For NVIDIA GPU support
+# 1. Install NVIDIA drivers
+# 2. Install CUDA toolkit from https://developer.nvidia.com/cuda-downloads
+# 3. Run:
+pip install nvidia-pyindex
+pip install nvidia-tensorflow
+```
+
+### GPU Acceleration Setup
+
+#### NVIDIA GPUs
+1. Install NVIDIA drivers for your GPU
+2. Install CUDA Toolkit (11.0 or higher recommended)
+3. Install additional requirements:
+```bash
+pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cudnn-cu12
+```
+
+#### AMD GPUs
+1. Install ROCm (Linux only) or AMD GPU drivers
+2. Install additional requirements:
+```bash
+pip install rocm-python torch-rocm  # Linux only
+```
+
+#### Intel GPUs
+1. Install Intel OpenCL Runtime
+2. Install additional requirements:
+```bash
+pip install intel-compute-runtime
+```
+
+### Verifying Installation
+
+Test your installation by running:
+```bash
+python wallet_brute_force.py --test
+```
+
+This will perform a quick test of all installed components and optimizations.
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **OpenCL not found**
+```bash
+# Linux
+sudo apt-get install ocl-icd-opencl-dev
+
+# macOS
+brew install opencl-headers
+
+# Windows
+# Install GPU vendor's development kit
+```
+
+2. **Compilation errors**
+```bash
+# Linux
+sudo apt-get install python3-dev build-essential
+
+# macOS
+xcode-select --install
+
+# Windows
+# Install Visual Studio Build Tools
+```
+
+3. **GPU not detected**
+```bash
+# Check GPU support
+python -c "import pyopencl; print(pyopencl.get_platforms())"
+```
+
+### Performance Optimization Tips
+
+1. **For Apple Silicon (M1/M2/M3)**
+```bash
+# Enable Metal support
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+
+# Run with optimized settings
+python wallet_brute_force.py --optimize_for=m3 --use_gpu
+```
+
+2. **For Intel/AMD Systems**
+```bash
+# Enable Intel MKL optimizations
+export MKL_NUM_THREADS=8
+export OMP_NUM_THREADS=8
+
+# Run with optimized settings
+python wallet_brute_force.py --optimize_for=intel --processes=8
+```
+
+3. **For Systems with NVIDIA GPUs**
+```bash
+# Set CUDA device
+export CUDA_VISIBLE_DEVICES=0
+
+# Run with GPU acceleration
+python wallet_brute_force.py --use_gpu --optimize_for=auto
 ```
 
 ## Usage
