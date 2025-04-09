@@ -3,6 +3,9 @@
 ## Description
 A Python-based tool for managing Bitcoin wallets. PyWallet allows you to dump, import, and recover Bitcoin wallet keys, as well as perform various other wallet operations.
 
+## Related Tools
+- [Wallet Brute Force Tool](README_wallet_brute_force.md) - Advanced tool for recovering encrypted wallet passwords with GPU acceleration and architecture-specific optimizations
+
 ## Acknowledgments
 This project is based on the original PyWallet (Python 2.x version) created by [@jackjack-jj](https://github.com/jackjack-jj). Special thanks to jackjack-jj for their excellent work on [pywallet](https://github.com/jackjack-jj/pywallet), which laid the foundation for this modern implementation.
 
