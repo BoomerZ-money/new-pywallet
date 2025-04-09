@@ -442,9 +442,23 @@ The tool displays information about your system:
 - Unauthorized attempts to access others' wallets may be illegal.
 - The tool does not transmit any data over the network; all processing is done locally.
 
-## Limitations
+## Limitations and Known Issues
 
-- The wallet.dat direct extraction is not implemented yet. Use the JSON output from PyWallet instead.
-- There's no guarantee that the password will be found, especially if it's complex or not covered by your search parameters.
-- The verification of successful decryption is based on heuristics and may occasionally report false positives.
-- GPU acceleration is experimental and requires additional setup.
+### Wallet.dat Extraction
+- Direct wallet.dat extraction is not implemented in this tool. For wallet.dat handling, please refer to:
+  - [PyWallet Original Implementation](README.md) - Contains the legacy wallet.dat extraction code
+  - [PyWallet Refactored Version](README_refactored.md) - Features improved wallet.dat handling with modern architecture
+- Currently, the brute force tool requires the encrypted master key and salt to be provided directly or through a JSON file
+- For extracting these values from wallet.dat, use the main PyWallet tool with:
+  ```bash
+  # Using original implementation
+  python pywallet3.py --dumpwallet --wallet=/path/to/wallet.dat
+  
+  # Using refactored implementation
+  python -m pywallet_refactored dump --wallet=/path/to/wallet.dat --output=keys.json
+  ```
+
+### Other Limitations
+- Maximum password length might be constrained by available memory when using GPU acceleration
+- Some GPU optimizations may not be available on older hardware
+- Performance may vary significantly based on hardware capabilities and chosen character set
