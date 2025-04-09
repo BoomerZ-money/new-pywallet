@@ -57,12 +57,12 @@ def hash_160_to_address(h160: bytes, version: int = 0) -> str:
     # Encode with Base58
     return b58encode(vh160 + checksum)
 
-def public_key_to_address(public_key: bytes, network: Optional[Dict[str, Any]] = None) -> str:
+def public_key_to_address(public_key: Union[bytes, str], network: Optional[Dict[str, Any]] = None) -> str:
     """
     Convert a public key to a Bitcoin address.
 
     Args:
-        public_key: Public key bytes
+        public_key: Public key bytes or hex string
         network: Network parameters (defaults to Bitcoin mainnet)
 
     Returns:
@@ -70,6 +70,10 @@ def public_key_to_address(public_key: bytes, network: Optional[Dict[str, Any]] =
     """
     if network is None:
         network = config.get_network()
+
+    # Convert hex string to bytes if needed
+    if isinstance(public_key, str):
+        public_key = hex_to_bytes(public_key)
 
     # Hash the public key
     h160 = hash160(public_key)

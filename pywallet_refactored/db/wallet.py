@@ -355,7 +355,7 @@ class WalletDB:
                     compressed = public_key[0] != 4
 
                     # Generate address from public key
-                    address = public_key_to_address(binascii.hexlify(public_key))
+                    address = public_key_to_address(public_key)
 
                     self.json_db['ckey'].append({
                         'pubkey': binascii.hexlify(public_key).decode('utf-8'),
@@ -381,7 +381,7 @@ class WalletDB:
                 compressed = public_key[0] != 4
 
                 # Generate address and WIF
-                address = public_key_to_address(binascii.hexlify(public_key))
+                address = public_key_to_address(public_key)
                 wif = private_key_to_wif(private_key, compressed)
 
                 self.json_db['keys'].append({
@@ -467,7 +467,7 @@ class WalletDB:
             elif type_str == "0a646566" or type_str.startswith("0a646566"):  # "\x0adefaultkey"
                 # Default key
                 key_data = vds.read_bytes(vds.read_compact_size())
-                self.json_db['defaultkey'] = public_key_to_address(binascii.hexlify(key_data))
+                self.json_db['defaultkey'] = public_key_to_address(key_data)
                 logger.debug(f"Default key: {self.json_db['defaultkey']}")
 
             elif type_str == "09626573" or type_str.startswith("09626573"):  # "\x09bestblock"
@@ -525,7 +525,7 @@ class WalletDB:
 
         # Generate address from public key
         from pywallet_refactored.crypto.keys import public_key_to_address
-        address = public_key_to_address(bytes_to_hex(public_key))
+        address = public_key_to_address(public_key)
 
         self.json_db['ckey'].append({
             'public_key': bytes_to_hex(public_key),

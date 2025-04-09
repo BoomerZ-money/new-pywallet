@@ -55,13 +55,22 @@ def create_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(
         title='Commands',
         dest='command',
-        help='Command to execute'
+        help='Command to execute',
+        required=True
     )
 
     # Dump wallet command
     dump_parser = subparsers.add_parser(
         'dump',
         help='Dump wallet data to a JSON file'
+    )
+    dump_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet.dat file'
+    )
+    dump_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
     )
     dump_parser.add_argument(
         '--output', '-o',
@@ -79,6 +88,14 @@ def create_parser() -> argparse.ArgumentParser:
         help='Import a private key into the wallet'
     )
     import_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet.dat file'
+    )
+    import_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
+    )
+    import_parser.add_argument(
         'key',
         help='WIF encoded private key'
     )
@@ -91,6 +108,14 @@ def create_parser() -> argparse.ArgumentParser:
     create_parser = subparsers.add_parser(
         'create',
         help='Create a new wallet'
+    )
+    create_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet.dat file'
+    )
+    create_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
     )
     create_parser.add_argument(
         '--output', '-o',
@@ -118,6 +143,14 @@ def create_parser() -> argparse.ArgumentParser:
         help='Create a backup of the wallet'
     )
     backup_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet.dat file'
+    )
+    backup_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
+    )
+    backup_parser.add_argument(
         '--output', '-o',
         help='Output file (defaults to wallet.dat.bak)'
     )
@@ -130,6 +163,10 @@ def create_parser() -> argparse.ArgumentParser:
     watchonly_parser.add_argument(
         '--wallet', '-w',
         help='Source wallet file'
+    )
+    watchonly_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
     )
     watchonly_parser.add_argument(
         '--output', '-o',
@@ -291,6 +328,14 @@ def create_parser() -> argparse.ArgumentParser:
         help='Recover keys from a wallet or device'
     )
     recovery_parser.add_argument(
+        '--wallet', '-w',
+        help='Path to wallet.dat file'
+    )
+    recovery_parser.add_argument(
+        '--passphrase', '-p',
+        help='Wallet passphrase for encrypted wallets'
+    )
+    recovery_parser.add_argument(
         '--file', '-f',
         help='File to scan for keys'
     )
@@ -312,10 +357,6 @@ def create_parser() -> argparse.ArgumentParser:
     recovery_parser.add_argument(
         '--output', '-o',
         help='Output file for recovered keys'
-    )
-    recovery_parser.add_argument(
-        '--passphrase', '-p',
-        help='Passphrase for encrypted keys'
     )
 
     # Legacy options (for compatibility with old pywallet.py)
@@ -369,8 +410,31 @@ def parse_args(args: Optional[List[str]] = None) -> Dict[str, Any]:
     if args is None:
         args = sys.argv[1:]
 
+    # Check for legacy options and convert them to subcommands
+    if args and not args[0].startswith('-') and args[0] not in ['dump', 'import', 'create', 'backup', 'watchonly', 'genkey', 'checkaddr', 'checkkey', 'balance', 'txhistory', 'batch', 'recover']:
+        # Not a recognized subcommand, might be using legacy syntax
+        pass
+    elif args and args[0].startswith('--'):
+        # Using legacy options without a subcommand
+        # Check for legacy options and insert the appropriate subcommand
+        if '--dumpwallet' in args or '-d' in args:
+            args.insert(0, 'dump')
+        elif '--importprivkey' in args:
+            args.insert(0, 'import')
+        elif '--createwallet' in args:
+            args.insert(0, 'create')
+        elif '--backupwallet' in args:
+            args.insert(0, 'backup')
+
     # Parse arguments
-    parsed_args = parser.parse_args(args)
+    try:
+        parsed_args = parser.parse_args(args)
+    except SystemExit as e:
+        # If parsing fails, try to provide a helpful error message
+        if args and args[0].startswith('--'):
+            print("Error: Missing command. Use 'python pywallet_refactored.py <command> [options]'")
+            print("Example: python pywallet_refactored.py dump --wallet ./wallet.dat --passphrase \"password\"")
+        raise e
 
     # Convert to dictionary
     args_dict = vars(parsed_args)
