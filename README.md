@@ -3,6 +3,11 @@
 ## Description
 A Python-based tool for managing Bitcoin wallets. PyWallet allows you to dump, import, and recover Bitcoin wallet keys, as well as perform various other wallet operations.
 
+## Acknowledgments
+This project is based on the original PyWallet (Python 2.x version) created by [@jackjack-jj](https://github.com/jackjack-jj). Special thanks to jackjack-jj for their excellent work on [pywallet](https://github.com/jackjack-jj/pywallet), which laid the foundation for this modern implementation.
+
+> **Note**: This repository contains PyWallet for Python 3.9+. For the legacy Python 2.x version, please visit the original repository at [jackjack-jj/pywallet](https://github.com/jackjack-jj/pywallet).
+
 ## Version Information
 This README documents the original PyWallet implementation (pywallet.py and pywallet3.py). For the refactored version with improved architecture, see [README_refactored.md](README_refactored.md).
 
