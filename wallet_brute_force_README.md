@@ -29,7 +29,7 @@ pip install -r requirements_brute_force.txt
 
 ### Platform-Specific Installations
 
-#### Apple Silicon (M1/M2/M3)
+#### Apple Silicon (M1/M2/M3/M4)
 ```bash
 # Install Homebrew if not already installed
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -79,6 +79,45 @@ pip install nvidia-tensorflow
 
 ### GPU Acceleration Setup
 
+#### Apple Silicon (M1/M2/M3) - Metal Support
+The tool includes native Metal support for Apple Silicon, providing significant performance improvements:
+
+1. **Metal Framework Setup**
+```bash
+# Install Metal dependencies
+pip install tensorflow-macos tensorflow-metal metal-python
+
+# Verify Metal availability
+python3 -c "import tensorflow as tf; print('Metal GPU available:', bool(tf.config.list_physical_devices('GPU')))"
+```
+
+2. **Performance Optimization**
+- Uses batch processing optimized for Metal (10240 passwords per batch)
+- Automatic memory management to prevent GPU memory issues
+- Parallel processing with Metal-specific optimizations
+- Automatic fallback to CPU if GPU acceleration fails
+
+3. **Usage with Metal**
+```bash
+# Enable Metal support and run with GPU acceleration
+python wallet_brute_force.py --use_gpu --optimize_for=m3
+
+# For maximum performance
+python wallet_brute_force.py --use_gpu --optimize_for=m3 --processes=8 --smart
+```
+
+4. **Metal-Specific Features**
+- Automatic detection of Apple Silicon processors
+- Dynamic batch size adjustment based on available GPU memory
+- Optimized tensor operations for password processing
+- Efficient memory handling for long-running operations
+
+5. **Monitoring Metal Performance**
+```bash
+# Show GPU utilization during processing
+sudo powermetrics --samplers gpu_power -i500 -n1
+```
+
 #### NVIDIA GPUs
 1. Install NVIDIA drivers for your GPU
 2. Install CUDA Toolkit (11.0 or higher recommended)
@@ -99,6 +138,62 @@ pip install rocm-python torch-rocm  # Linux only
 2. Install additional requirements:
 ```bash
 pip install intel-compute-runtime
+```
+
+### Architecture-Specific Optimizations
+
+#### Apple Silicon Optimization
+The tool includes several optimizations specific to Apple Silicon:
+
+1. **Metal Acceleration**
+- Utilizes Apple's Metal framework for GPU computation
+- Optimized tensor operations for password processing
+- Efficient batch processing with Metal-specific parameters
+- Automatic hardware detection and configuration
+
+2. **Memory Management**
+- Dynamic batch sizing based on available GPU memory
+- Efficient memory allocation for Metal operations
+- Automatic garbage collection to prevent memory leaks
+
+3. **Performance Tuning**
+```bash
+# Enable all Metal optimizations
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+export TF_FORCE_GPU_ALLOW_GROWTH=true
+
+# Run with optimal settings for M1/M2/M3
+python wallet_brute_force.py --use_gpu --optimize_for=m3 --processes=8
+```
+
+4. **Troubleshooting Metal Issues**
+If you encounter Metal-related issues:
+
+```bash
+# Verify Metal support
+python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices())"
+
+# Check Metal device status
+system_profiler SPDisplaysDataType
+
+# Reset Metal device if needed
+sudo killall -9 metalcompiler
+```
+
+Common Metal-specific issues and solutions:
+- **Metal device not found**: Ensure macOS is updated to the latest version
+- **Out of memory errors**: Reduce batch size using `--batch_size` parameter
+- **Performance degradation**: Monitor GPU temperature and throttling
+- **Initialization failures**: Reset Metal compiler and retry
+
+5. **Performance Monitoring**
+Monitor Metal GPU performance:
+```bash
+# Basic GPU monitoring
+sudo powermetrics --samplers gpu_power
+
+# Detailed performance metrics
+sudo powermetrics --samplers gpu_power,gpu_compute -i500
 ```
 
 ### Verifying Installation

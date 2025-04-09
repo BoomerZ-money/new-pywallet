@@ -70,6 +70,97 @@ except ImportError:
     RESET = ""
     COLORAMA_AVAILABLE = False
 
+# Try to import Metal support for Apple Silicon
+try:
+    import tensorflow as tf
+    import metal_python
+    METAL_AVAILABLE = (
+        tf.config.list_physical_devices('GPU') 
+        and platform.processor() == 'arm'
+        and platform.system() == 'Darwin'
+    )
+except ImportError:
+    METAL_AVAILABLE = False
+
+def setup_metal_device():
+    """Configure Metal device for Apple Silicon."""
+    if not METAL_AVAILABLE:
+        return None
+    
+    try:
+        # Enable Metal device
+        tf.config.experimental.set_memory_growth(
+            tf.config.list_physical_devices('GPU')[0], 
+            True
+        )
+        return tf.device('/GPU:0')
+    except Exception as e:
+        print(f"{WARNING}Failed to initialize Metal device: {e}{RESET}")
+        return None
+
+def process_passwords_metal(passwords, encrypted_key, salt, iterations):
+    """Process passwords using Metal GPU acceleration."""
+    if not (METAL_AVAILABLE and NUMPY_AVAILABLE):
+        return None
+
+    try:
+        with setup_metal_device() as device:
+            if device is None:
+                return None
+
+            # Convert passwords to tensor
+            passwords_tensor = tf.convert_to_tensor(
+                [p.encode('utf-8') for p in passwords], 
+                dtype=tf.string
+            )
+            
+            # Create salt tensor
+            salt_tensor = tf.repeat(
+                tf.convert_to_tensor([salt], dtype=tf.string),
+                len(passwords)
+            )
+
+            # Define the PBKDF2 operation
+            @tf.function
+            def pbkdf2_batch(passwords, salt):
+                def process_single(p, s):
+                    return tf.py_function(
+                        lambda x, y: hashlib.pbkdf2_hmac(
+                            'sha512', x, y, iterations, 32
+                        ),
+                        [p, s],
+                        tf.string
+                    )
+                
+                return tf.map_fn(
+                    lambda x: process_single(x[0], x[1]),
+                    (passwords, salt),
+                    dtype=tf.string,
+                    parallel_iterations=16
+                )
+
+            # Process in batches
+            batch_size = 1024
+            results = []
+            
+            for i in range(0, len(passwords), batch_size):
+                batch_passwords = passwords_tensor[i:i + batch_size]
+                batch_salt = salt_tensor[i:i + batch_size]
+                
+                # Generate keys
+                keys = pbkdf2_batch(batch_passwords, batch_salt)
+                
+                # Check each key
+                for j, key in enumerate(keys):
+                    if check_password(passwords[i + j], encrypted_key, salt, iterations)[0]:
+                        return [(True, passwords[i + j])]
+            
+            return None
+
+    except Exception as e:
+        print(f"{WARNING}Metal acceleration failed: {e}{RESET}")
+        return None
+
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Bitcoin Wallet Password Brute Force Tool")
